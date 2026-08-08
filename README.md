@@ -6,23 +6,22 @@ Internal operations tool for a wholesale distribution business. Covers Customer 
 
 ---
 
-## Live URLs
+## Repository & Artifacts
 
-| Service | URL |
-|---|---|
-| Frontend | *(Vercel — added in Phase 4)* |
-| Backend API | *(Render — added in Phase 4)* |
+- **GitHub Repository:** `https://github.com/karthikyernana/fundsroom.git`
+- **Postman Collection:** [`FundsRoom.postman_collection.json`](./FundsRoom.postman_collection.json)
+- **Development Log:** [`DEVLOG.md`](./DEVLOG.md)
 
 ---
 
 ## Test Credentials
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@fundsroom.com | password123 |
-| Sales | sales@fundsroom.com | password123 |
-| Warehouse | warehouse@fundsroom.com | password123 |
-| Accounts | accounts@fundsroom.com | password123 |
+| Role | Email | Password | Allowed Access |
+|---|---|---|---|
+| **Admin** | `admin@fundsroom.com` | `password123` | Full access across all modules |
+| **Sales** | `sales@fundsroom.com` | `password123` | Customer CRUD, Read products, Create/Confirm/Edit draft challans |
+| **Warehouse** | `warehouse@fundsroom.com` | `password123` | Product & Stock CRUD, Read customers, Create/Confirm/Cancel challans |
+| **Accounts** | `accounts@fundsroom.com` | `password123` | Read-only across all modules |
 
 ---
 
@@ -30,136 +29,167 @@ Internal operations tool for a wholesale distribution business. Covers Customer 
 
 | Layer | Technology |
 |---|---|
-| Runtime | Node.js |
-| Backend | Express.js + TypeScript (strict) |
-| Database | PostgreSQL (Supabase) |
-| ORM | Prisma |
-| Validation | Zod |
-| Auth | JWT (jsonwebtoken) + bcryptjs |
-| Frontend | React + TypeScript (Vite) |
-| Data fetching | TanStack Query |
-| HTTP client | Axios |
-| Styling | Plain CSS with custom design tokens |
-| Fonts | IBM Plex Sans + IBM Plex Mono (Google Fonts) |
+| **Runtime** | Node.js (v18+) |
+| **Backend** | Express.js + TypeScript (strict) |
+| **Database** | PostgreSQL (Supabase) |
+| **ORM** | Prisma ORM |
+| **Validation** | Zod |
+| **Auth** | JWT (`jsonwebtoken`) + `bcryptjs` |
+| **Frontend** | React 19 + TypeScript (Vite) |
+| **Data Fetching** | TanStack Query (React Query v5) |
+| **HTTP Client** | Axios + Interceptors |
+| **Styling** | Plain CSS with custom design token system |
+| **Typography** | IBM Plex Sans + IBM Plex Mono (Google Fonts) |
 
 ---
 
-## Local Setup
+## Local Setup & Quick Start
 
 ### Prerequisites
 - Node.js v18+
-- A Supabase project (free tier) — get the PostgreSQL connection string from Settings → Database → Connection String (URI mode)
+- A Supabase PostgreSQL connection string (URI mode)
 
-### 1. Clone and install
+### 1. Clone & Install Dependencies
 
 ```bash
 git clone https://github.com/karthikyernana/fundsroom.git
 cd fundsroom
 
-# Install backend deps
+# Install backend dependencies
 cd backend && npm install
 
-# Install frontend deps
+# Install frontend dependencies
 cd ../frontend && npm install
 ```
 
-### 2. Backend environment
+### 2. Configure Environment Variables
 
-```bash
-cd backend
-cp .env.example .env
-# Edit .env — fill in DATABASE_URL and JWT_SECRET
+Create `backend/.env` based on `backend/.env.example`:
+```env
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[REF].supabase.co:5432/postgres"
+JWT_SECRET="super-secret-key-32-chars-long"
+PORT=3001
+CORS_ORIGIN="http://localhost:5173"
+NODE_ENV="development"
 ```
 
-Required variables:
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | Supabase PostgreSQL URI |
-| `JWT_SECRET` | Long random string for signing tokens |
-| `PORT` | Server port (default: 3001) |
-| `CORS_ORIGIN` | Frontend URL (default: http://localhost:5173) |
-| `NODE_ENV` | `development` or `production` |
-
-Generate a JWT secret:
-```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+Create `frontend/.env` based on `frontend/.env.example`:
+```env
+VITE_API_URL=http://localhost:3001
 ```
 
-### 3. Database setup
+### 3. Database Migration & Seeding
 
 ```bash
 cd backend
 
-# Run migrations
+# Run Prisma schema migration
 npx prisma migrate dev --name init
 
-# Seed with sample data
+# Seed database with sample users, customers, products, and challans
 npm run db:seed
 ```
 
-### 4. Run locally
+### 4. Run Development Servers
 
 ```bash
-# Terminal 1 — backend
+# Terminal 1 — Backend API
 cd backend && npm run dev
 
-# Terminal 2 — frontend
+# Terminal 2 — Frontend App
 cd frontend && npm run dev
 ```
 
-Frontend: http://localhost:5173  
-Backend: http://localhost:3001  
-Health check: http://localhost:3001/health
+- **Frontend:** `http://localhost:5173`
+- **Backend API:** `http://localhost:3001`
+- **Health Check:** `http://localhost:3001/health`
+
+---
+
+## Deployment Guide
+
+### Backend (Render / Railway)
+
+1. Create a new **Web Service** pointing to the `backend/` directory of the repository.
+2. Set Build Command: `npm install && npx prisma generate && npm run build`
+3. Set Start Command: `npm start`
+4. Configure Environment Variables:
+   - `DATABASE_URL` = Your Supabase URI
+   - `JWT_SECRET` = Production random 64-byte string
+   - `CORS_ORIGIN` = Your Vercel frontend URL
+   - `NODE_ENV` = `production`
+
+### Frontend (Vercel)
+
+1. Import the repository into Vercel and set the Root Directory to `frontend`.
+2. Framework Preset: **Vite**
+3. Build Command: `npm run build`
+4. Output Directory: `dist`
+5. Configure Environment Variables:
+   - `VITE_API_URL` = Your deployed backend API URL
+6. SPA Routing: Included via `frontend/vercel.json` rewrite rule.
 
 ---
 
 ## API Reference
 
-Full Postman collection: `FundsRoom.postman_collection.json` *(added in Phase 4)*
+The project includes a complete Postman collection: `FundsRoom.postman_collection.json`.
 
 Base URL: `http://localhost:3001`
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | /auth/login | — | Login, receive JWT |
-| GET | /auth/me | ✓ | Current user |
-| GET | /customers | ✓ | List + search + paginate |
-| POST | /customers | ✓ | Create customer |
-| GET | /customers/:id | ✓ | Customer detail |
-| PUT | /customers/:id | ✓ | Update customer |
-| POST | /customers/:id/notes | ✓ | Add note |
-| GET | /products | ✓ | List + search + paginate |
-| POST | /products | ✓ | Create product |
-| GET | /products/:id | ✓ | Product detail |
-| PUT | /products/:id | ✓ | Update product |
-| POST | /products/:id/stock-movements | ✓ | Add stock movement |
-| GET | /products/:id/stock-movements | ✓ | Movement history |
-| GET | /challans | ✓ | List + filter + paginate |
-| POST | /challans | ✓ | Create draft challan |
-| GET | /challans/:id | ✓ | Challan detail |
-| PUT | /challans/:id | ✓ | Update draft challan |
-| POST | /challans/:id/confirm | ✓ | Confirm (stock-safe transaction) |
-| POST | /challans/:id/cancel | ✓ | Cancel challan |
+| Method | Endpoint | Auth Required | Allowed Roles | Description |
+|---|---|---|---|---|
+| `POST` | `/auth/login` | No | All | Authenticate and obtain JWT token |
+| `GET` | `/auth/me` | Yes | All | Get current authenticated user details |
+| `GET` | `/customers` | Yes | All | List customers (supports `search`, `status`, `page`, `limit`) |
+| `POST` | `/customers` | Yes | Admin, Sales | Create customer record |
+| `GET` | `/customers/:id` | Yes | All | Get customer details with follow-up notes timeline |
+| `PUT` | `/customers/:id` | Yes | Admin, Sales | Update customer profile |
+| `POST` | `/customers/:id/notes` | Yes | Admin, Sales | Add a follow-up note to customer timeline |
+| `GET` | `/products` | Yes | All | List products (supports `search`, `category`, `low_stock`, `page`, `limit`) |
+| `POST` | `/products` | Yes | Admin, Warehouse | Create product |
+| `GET` | `/products/:id` | Yes | All | Get product details |
+| `PUT` | `/products/:id` | Yes | Admin, Warehouse | Update product details (price, alert threshold, location) |
+| `POST` | `/products/:id/stock-movements` | Yes | Admin, Warehouse | Record manual stock movement (`IN` / `OUT`) |
+| `GET` | `/products/:id/stock-movements` | Yes | All | Get stock movement log for a product |
+| `GET` | `/challans` | Yes | All | List sales challans (supports `status`, `customer`, `page`, `limit`) |
+| `POST` | `/challans` | Yes | Admin, Sales, Warehouse | Create draft sales challan |
+| `GET` | `/challans/:id` | Yes | All | Get challan details with line item snapshots |
+| `PUT` | `/challans/:id` | Yes | Admin, Sales, Warehouse | Update draft challan line items |
+| `POST` | `/challans/:id/confirm` | Yes | Admin, Sales, Warehouse | Confirm & dispatch (atomic stock deduction) |
+| `POST` | `/challans/:id/cancel` | Yes | Admin, Warehouse | Cancel draft or un-dispatched challan |
 
 ---
 
-## Deployment
+## Core Architecture & Technical Highlights
 
-*(Completed in Phase 4 — steps will be filled here)*
+### 1. Atomic Transaction Safety (Preventing TOCTOU Race Conditions)
+- **Problem:** Stock deduction in outbound challans faces Time-of-Check to Time-of-Use (TOCTOU) race conditions if executed as separate `findUnique()` read and `update()` decrement calls inside default `READ COMMITTED` transactions.
+- **Solution:** Stock deduction uses a single atomic SQL statement per line item via Prisma `$executeRaw`:
+  ```sql
+  UPDATE "products"
+  SET "current_stock" = "current_stock" - $qty, "updated_at" = NOW()
+  WHERE "id" = $productId::uuid AND "current_stock" >= $qty;
+  ```
+  `$executeRaw` returns affected rows (1 = success, 0 = stock insufficient at instant of execution).
+- **Database Backstop:** A PostgreSQL `CHECK ("current_stock" >= 0)` constraint migration (`backend/prisma/migrations/20260808_add_stock_check_constraint`) physically prevents negative stock at the engine layer.
+
+### 2. Historical Data Integrity via Line Item Snapshots
+- When a draft challan is created, product name (`product_name_snapshot`), SKU (`product_sku_snapshot`), and unit price (`unit_price_snapshot`) are frozen at creation time.
+- Future catalog price changes or product renames will never corrupt historical sales records or financial totals.
+
+### 3. Strict Audit Trail Enforcement
+- Direct edits to `current_stock` via `PUT /products/:id` are blocked.
+- All stock changes must originate from either a confirmed sales challan or an explicit `POST /products/:id/stock-movements` call (`IN` / `OUT` with mandatory user attribution and audit reasoning).
+
+### 4. Custom Industrial Design System
+- Built with a custom color palette (`#18181B` deep charcoal, `#15803D` ledger green, `#C2410C` ink stamp, `#B91C1C` brick red).
+- Features signature elements like `StampBadge` for challan status (monospace, rotated stamp aesthetic), subtle hover interactions, and responsive card layouts.
 
 ---
 
-## Architecture Summary
+## Known Limitations & Tradeoffs
 
-*(Completed in Phase 4 from accumulated DEVLOG.md)*
-
----
-
-## Known Limitations
-
-*(Filled honestly in Phase 4)*
-
----
-
-*This README is built progressively alongside the build per §9 of the PRD. See DEVLOG.md for build decisions and assumptions.*
+1. **In-Memory Post-Filtering for `low_stock` Query:** Prisma ORM currently lacks native column-to-column comparison queries (e.g. `WHERE current_stock <= min_stock_alert`). Low stock queries fetch matching product records and apply filtering in the application layer. For enterprise scale (100k+ SKUs), this would be refactored to `$queryRaw`.
+2. **Sequential Multi-Item Challan Confirm:** Challan confirmation loops line items sequentially within a Prisma `$transaction`. If item 5 of 10 has insufficient stock, the transaction cleanly aborts and rolls back items 1-4.
+3. **Session Revocation:** JWT tokens are stateless with a 24-hour expiration. Revocation before expiration requires token blocklisting (Redis), omitted for scope.
