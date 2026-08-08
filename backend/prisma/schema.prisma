@@ -92,6 +92,11 @@ model products {
   sku              String   @unique
   category         String
   unit_price       Decimal  @db.Decimal(12, 2)
+  // NOTE: current_stock must never go negative.
+  // PRIMARY guard: confirmChallan uses a single atomic
+  //   UPDATE ... WHERE current_stock >= qty ($executeRaw) — no TOCTOU race possible.
+  // SECONDARY backstop: CHECK (current_stock >= 0) added via
+  //   prisma/migrations/add_stock_check_constraint/migration.sql
   current_stock    Int      @default(0)
   min_stock_alert  Int      @default(10)
   location         String?
@@ -102,6 +107,7 @@ model products {
   stock_movements stock_movements[]
   challan_items   challan_items[]
 }
+
 
 model stock_movements {
   id               String       @id @default(uuid())
