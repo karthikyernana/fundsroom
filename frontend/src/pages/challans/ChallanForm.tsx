@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useCreateChallan, useUpdateChallan, useChallan } from '../../hooks/useChallans';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useProducts } from '../../hooks/useProducts';
-import { Spinner, EmptyState, ErrorState } from '../../components/ui/States';
+import { Spinner, EmptyState } from '../../components/ui/States';
 
 interface LineItem {
   product_id: string;

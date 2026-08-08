@@ -36,7 +36,8 @@ export default function CustomerForm() {
   useEffect(() => {
     if (isEdit && existing) {
       Object.entries(EMPTY).forEach(([key]) => {
-        const val = (existing as Record<string, unknown>)[key];
+        const val = (existing as unknown as Record<string, unknown>)[key];
+
         if (val !== undefined && val !== null) {
           let strVal = String(val);
           if (key === 'follow_up_date' && strVal) {
