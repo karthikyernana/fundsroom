@@ -32,7 +32,11 @@ export default function ProductDetail() {
     e.preventDefault();
     setMovError('');
     const quantity = parseInt(qty);
-    if (!quantity || quantity <= 0) { setMovError('Enter a positive quantity'); return; }
+    if (!quantity || quantity <= 0) { setMovError('Enter a positive integer quantity'); return; }
+    if (product && movType === 'OUT' && quantity > product.current_stock) {
+      setMovError(`Cannot deduct ${quantity} units: only ${product.current_stock} available in stock.`);
+      return;
+    }
     try {
       await addMovement.mutateAsync({ quantity_changed: quantity, movement_type: movType, reason });
       setModalOpen(false);

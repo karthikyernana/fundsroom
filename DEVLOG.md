@@ -117,7 +117,9 @@ Running log of build decisions, per §9 of the PRD. This is the direct source fo
 - **Zod Boolean Query Preprocessor:** Fixed `low_stock` boolean coercion in `product.schema.ts` using `z.preprocess()` so that string `"false"` correctly resolves to `false` instead of coercing to `true`.
 - **Customer Date Validation & Domain Rule:** Updated `follow_up_date` validation in `customer.schema.ts` and `CustomerForm.tsx` to enforce that follow-up dates cannot be set in the past (must be today or a future date).
 - **Resilient Sequence Generator:** Refactored `generateChallanNumber()` in `challan.service.ts` to query the highest sequence number matching today's pattern `CH-YYYYMMDD-%` ordered descending, preventing duplicate challan number collisions across timezones or deleted draft numbers.
-- **FK User ID Guard in Product Initial Stock:** Fixed `createProduct` stock movement creation so `created_by` references a valid user ID.
+- **Challan Line Item Consolidation:** Consolidated duplicate product line items in `createChallan` and `updateChallan` (`challan.service.ts`), ensuring clean quantity aggregation and snapshot integrity.
+- **Stock Movement Bounds Validation:** Added client-side quantity checks in `ProductDetail.tsx` to prevent manual `OUT` movements exceeding available stock before calling the API.
+- **SKU Alphanumeric Sanitization:** Enforced character pattern validation (`/^[A-Za-z0-9\-_./]+$/`) and non-negative alert/stock bounds in `ProductForm.tsx`.
 - **Live Operations Dashboard Metrics:** Added real-time operational metric widgets to Dashboard (`App.tsx`), giving instant visibility into Active Customers, Total Products, Low Stock Alerts, and Total & Draft Challan counts.
 - **Toast Notification System:** Created `Toast.tsx` component and integrated toast notifications across all form submissions, stock adjustments, and challan confirmations.
 - **Mobile Responsive Drawer:** Added mobile header toggle and sidebar drawer navigation in `App.tsx` and `index.css`.

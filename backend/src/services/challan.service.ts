@@ -115,12 +115,28 @@ export async function createChallan(data: CreateChallanInput, userId: string) {
     throw new AppError(400, 'Challan must have at least one line item');
   }
 
+  // Consolidate duplicate line items for same product_id
+  const itemMap = new Map<string, number>();
+  for (const item of items) {
+    if (item.quantity <= 0) continue;
+    itemMap.set(item.product_id, (itemMap.get(item.product_id) ?? 0) + item.quantity);
+  }
+
+  const consolidatedItems = Array.from(itemMap.entries()).map(([product_id, quantity]) => ({
+    product_id,
+    quantity,
+  }));
+
+  if (consolidatedItems.length === 0) {
+    throw new AppError(400, 'Line items must have positive quantities');
+  }
+
   // Verify customer exists
   const customer = await prisma.customers.findUnique({ where: { id: customer_id } });
   if (!customer) throw new AppError(404, 'Customer not found');
 
   // Fetch products for snapshot data
-  const productIds = items.map((i) => i.product_id);
+  const productIds = consolidatedItems.map((i) => i.product_id);
   const products = await prisma.products.findMany({
     where: { id: { in: productIds } },
   });
@@ -134,7 +150,7 @@ export async function createChallan(data: CreateChallanInput, userId: string) {
   const productMap = new Map(products.map((p) => [p.id, p]));
 
   const challanNumber = await generateChallanNumber();
-  const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
+  const totalQuantity = consolidatedItems.reduce((sum, i) => sum + i.quantity, 0);
 
   const challan = await prisma.challans.create({
     data: {
@@ -144,7 +160,7 @@ export async function createChallan(data: CreateChallanInput, userId: string) {
       total_quantity: totalQuantity,
       created_by: userId,
       challan_items: {
-        create: items.map((item) => {
+        create: consolidatedItems.map((item) => {
           const product = productMap.get(item.product_id)!;
           return {
             product_id: item.product_id,
@@ -190,16 +206,35 @@ export async function updateChallan(
   }
 
   if (items && items.length > 0) {
-    const productIds = items.map((i) => i.product_id);
+    const itemMap = new Map<string, number>();
+    for (const item of items) {
+      if (item.quantity <= 0) continue;
+      itemMap.set(item.product_id, (itemMap.get(item.product_id) ?? 0) + item.quantity);
+    }
+    const consolidatedItems = Array.from(itemMap.entries()).map(([product_id, quantity]) => ({
+      product_id,
+      quantity,
+    }));
+
+    if (consolidatedItems.length === 0) {
+      throw new AppError(400, 'Challan must have at least one valid line item');
+    }
+
+    const productIds = consolidatedItems.map((i) => i.product_id);
     const products = await prisma.products.findMany({ where: { id: { in: productIds } } });
+    if (products.length !== productIds.length) {
+      const foundIds = products.map((p) => p.id);
+      const missing = productIds.filter((pid) => !foundIds.includes(pid));
+      throw new AppError(404, `Products not found: ${missing.join(', ')}`);
+    }
+
     const productMap = new Map(products.map((p) => [p.id, p]));
 
-    updateData.total_quantity = items.reduce((sum, i) => sum + i.quantity, 0);
+    updateData.total_quantity = consolidatedItems.reduce((sum, i) => sum + i.quantity, 0);
     updateData.challan_items = {
       deleteMany: {},
-      create: items.map((item) => {
-        const product = productMap.get(item.product_id);
-        if (!product) throw new AppError(404, `Product not found: ${item.product_id}`);
+      create: consolidatedItems.map((item) => {
+        const product = productMap.get(item.product_id)!;
         return {
           product_id: item.product_id,
           product_name_snapshot: product.name,

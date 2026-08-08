@@ -42,11 +42,18 @@ export default function ProductForm() {
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!values.name.trim()) errs.name = 'Name is required';
-    if (!values.sku.trim()) errs.sku = 'SKU is required';
+    if (!values.sku.trim()) {
+      errs.sku = 'SKU is required';
+    } else if (!/^[A-Za-z0-9\-_./]+$/.test(values.sku.trim())) {
+      errs.sku = 'SKU contains invalid characters';
+    }
     if (!values.category.trim()) errs.category = 'Category is required';
     if (!values.unit_price || Number(values.unit_price) <= 0) errs.unit_price = 'Enter a positive price';
-    if (isEdit && values.current_stock !== '') {
-      // In edit mode, current_stock field is hidden (only via stock movements)
+    if (values.min_stock_alert !== '' && Number(values.min_stock_alert) < 0) {
+      errs.min_stock_alert = 'Min stock alert cannot be negative';
+    }
+    if (!isEdit && values.current_stock !== '' && Number(values.current_stock) < 0) {
+      errs.current_stock = 'Opening stock cannot be negative';
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
