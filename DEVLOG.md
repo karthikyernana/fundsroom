@@ -50,3 +50,61 @@ Running log of build decisions, per §9 of the PRD. This is the direct source fo
 ---
 
 *Phase 2 entry will be appended after Core Business APIs are complete.*
+
+---
+
+## Phase 2 — Core Business APIs
+**Date:** 2026-08-08
+
+### What was built
+- Customer service: list (search/filter/paginate), get (with notes timeline), create, update, addNote
+- Customer routes: GET/POST /customers, GET/PUT /customers/:id, POST /customers/:id/notes — role-guarded per the approved permission matrix
+- Product service: list (low_stock column-to-column filter via post-processing), get, create (with opening stock movement), update, addStockMovement, getStockMovements
+- Product routes: all 6 endpoints — PUT does NOT accept current_stock (forces stock movements for audit trail)
+- Challan service: all CRUD + confirmChallan with atomic conditional UPDATE (race-safe)
+- Challan routes: all 6 endpoints with role guards
+- Zod schemas: customer.schema.ts, product.schema.ts, challan.schema.ts — all with .parse() at route layer
+
+### Key decisions
+
+**`current_stock` not editable via PUT /products/:id:** Stock changes must go through POST /products/:id/stock-movements to maintain a complete audit trail. Blocking direct edits enforces this at the API layer, not just convention.
+
+**Low-stock filter as post-process:** Prisma doesn't support column-to-column comparisons (WHERE current_stock <= min_stock_alert) in its ORM API. Options: raw SQL or post-filter. Post-filter chosen to keep code readable — the dataset is small enough that fetching all and filtering in JS is not a performance concern for this use case.
+
+**Race-condition fix on `confirmChallan`:** The original findUnique+check+decrement pattern has a TOCTOU race at READ COMMITTED isolation. Fixed with a single `$executeRaw` `UPDATE ... WHERE current_stock >= qty`. `$executeRaw` returns rows affected — 0 means the condition failed atomically. A PostgreSQL CHECK (current_stock >= 0) constraint was added via manual migration as a structural backstop. The same atomic pattern is also applied to manual OUT stock movements.
+
+**Challan number server-generated:** Per §4. Pattern: CH-YYYYMMDD-NNNN. Never accepted from the client — the route ignores any `challan_number` field in the request body.
+
+**Snapshot fields on challan_items:** product_name_snapshot, product_sku_snapshot, unit_price_snapshot are written at creation time from the live product data. These are never updated. If the product catalog changes, historical challans remain accurate.
+
+---
+
+## Phase 3 — Challan Engine & Full Frontend
+**Date:** 2026-08-08
+
+### What was built
+- UI component kit: Spinner, EmptyState, ErrorState, Badge, StampBadge, Modal (portal + Escape + backdrop), Pagination
+- TanStack Query hooks: useCustomers, useProducts, useChallans — all with proper cache invalidation
+- AuthContext with localStorage session persistence and global 401 redirect
+- All 9 frontend pages:
+  - CustomerList (search, status filter, paginate), CustomerDetail (info + notes timeline), CustomerForm (create/edit, field-level backend errors)
+  - ProductList (search, low-stock checkbox filter, LOW badge), ProductDetail (big stock number + movement log + Adjust Stock modal), ProductForm (create/edit, stock only editable via modal)
+  - ChallanList (status filter tabs, StampBadge column), ChallanDetail (line items, confirm/cancel modals, live stock warning), ChallanForm (customer search picker, product search picker with live stock, quantity validation, overstock warning)
+- Role-aware App router: per-role route guarding — accounts can't access write routes, correct nav shown per role
+
+### Key decisions
+
+**StampBadge as signature element:** Implemented exactly per §2 — IBM Plex Mono, rotate(-1.5deg), 2px border, returns to 0deg on hover. Used ONLY for challan status. Generic badges use the rounded pill style.
+
+**ChallanForm product picker:** Search-driven rather than showing all products (could be thousands). Shows live current_stock next to each product — overstock warning appears inline when quantity exceeds stock, giving the user visibility before they hit the backend 409.
+
+**TanStack Query cache invalidation on confirm:** useConfirmChallan invalidates both ['challans'] and ['products'] cache on success, because stock changed. This ensures the product list reflects updated stock immediately without a manual refresh.
+
+**Modal via React portal:** Renders into document.body to avoid z-index stacking context issues with the sidebar. Includes Escape key handler, backdrop click close, and body scroll lock.
+
+**Every screen has loading/empty/error states:** No blank screens anywhere — this was a direct PRD requirement (§7).
+
+### Assumptions
+- The Vite boilerplate's App.css and react.svg were removed as they would override the custom design system.
+- Products route is visible to `accounts` role for read-only access (needed for financial context when reviewing challans).
+
