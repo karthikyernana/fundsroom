@@ -9,7 +9,17 @@ export const createCustomerSchema = z.object({
   customer_type: z.enum(['retail', 'wholesale', 'distributor']),
   address: z.string().min(1, 'Address is required').max(300),
   status: z.enum(['lead', 'active', 'inactive']).default('lead'),
-  follow_up_date: z.string().refine((val) => !val || !isNaN(Date.parse(val)), { message: 'Invalid date format' }).optional().or(z.literal('')),
+  follow_up_date: z.string()
+    .refine((val) => {
+      if (!val) return true;
+      const date = new Date(val);
+      if (isNaN(date.getTime())) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return date >= today;
+    }, { message: 'Follow-up date cannot be in the past' })
+    .optional()
+    .or(z.literal('')),
   notes: z.string().max(1000).optional(),
 });
 

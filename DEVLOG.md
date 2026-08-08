@@ -115,7 +115,7 @@ Running log of build decisions, per §9 of the PRD. This is the direct source fo
 
 ### What was built & fixed
 - **Zod Boolean Query Preprocessor:** Fixed `low_stock` boolean coercion in `product.schema.ts` using `z.preprocess()` so that string `"false"` correctly resolves to `false` instead of coercing to `true`.
-- **Customer Date Validation Flexibility:** Updated `follow_up_date` validation in `customer.schema.ts` to accept plain ISO date strings (`YYYY-MM-DD`) as well as full ISO datetime strings.
+- **Customer Date Validation & Domain Rule:** Updated `follow_up_date` validation in `customer.schema.ts` and `CustomerForm.tsx` to enforce that follow-up dates cannot be set in the past (must be today or a future date).
 - **Resilient Sequence Generator:** Refactored `generateChallanNumber()` in `challan.service.ts` to query the highest sequence number matching today's pattern `CH-YYYYMMDD-%` ordered descending, preventing duplicate challan number collisions across timezones or deleted draft numbers.
 - **FK User ID Guard in Product Initial Stock:** Fixed `createProduct` stock movement creation so `created_by` references a valid user ID.
 - **Live Operations Dashboard Metrics:** Added real-time operational metric widgets to Dashboard (`App.tsx`), giving instant visibility into Active Customers, Total Products, Low Stock Alerts, and Total & Draft Challan counts.

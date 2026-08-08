@@ -62,6 +62,10 @@ export default function CustomerForm() {
     if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
       errs.email = 'Invalid email format';
     }
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (values.follow_up_date && values.follow_up_date < todayStr) {
+      errs.follow_up_date = 'Follow-up date cannot be in the past';
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -192,8 +196,10 @@ export default function CustomerForm() {
 
             <div className="form-group">
               <label className="form-label" htmlFor="c-followup">Follow-up Date</label>
-              <input id="c-followup" type="date" className="form-input mono"
+              <input id="c-followup" type="date" className={`form-input mono${errors.follow_up_date ? ' error' : ''}`}
+                min={new Date().toISOString().split('T')[0]}
                 value={values.follow_up_date} onChange={(e) => set('follow_up_date', e.target.value)} />
+              {errors.follow_up_date && <div className="form-error">{errors.follow_up_date}</div>}
             </div>
           </div>
 
