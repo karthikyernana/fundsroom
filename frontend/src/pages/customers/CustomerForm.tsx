@@ -20,10 +20,13 @@ const EMPTY: Record<string, string> = {
   status: 'lead', follow_up_date: '', notes: '',
 };
 
+import { useToast } from '../../components/ui/Toast';
+
 export default function CustomerForm() {
   const { id } = useParams<{ id?: string }>();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const { data: existing, isLoading, isError } = useCustomer(id ?? '');
   const create = useCreateCustomer();
@@ -84,9 +87,11 @@ export default function CustomerForm() {
     try {
       if (isEdit) {
         await update.mutateAsync(payload);
+        showToast({ type: 'success', title: 'Customer Updated', message: 'Customer details saved successfully.' });
         navigate(`/customers/${id}`);
       } else {
         const res = await create.mutateAsync(payload);
+        showToast({ type: 'success', title: 'Customer Created', message: 'New customer created successfully.' });
         navigate(`/customers/${(res.data as { data: { id: string } }).data.id}`);
       }
     } catch (err: unknown) {
@@ -96,8 +101,11 @@ export default function CustomerForm() {
         const fieldErrs: Record<string, string> = {};
         details.forEach((d) => { fieldErrs[d.field] = d.message; });
         setErrors(fieldErrs);
+        showToast({ type: 'error', title: 'Validation Failed', message: 'Please fix highlighted errors.' });
       } else {
-        setSubmitError(apiErr?.response?.data?.error?.message ?? 'Save failed. Please try again.');
+        const msg = apiErr?.response?.data?.error?.message ?? 'Save failed. Please try again.';
+        setSubmitError(msg);
+        showToast({ type: 'error', title: 'Save Failed', message: msg });
       }
     }
   };

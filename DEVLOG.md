@@ -108,3 +108,23 @@ Running log of build decisions, per §9 of the PRD. This is the direct source fo
 - The Vite boilerplate's App.css and react.svg were removed as they would override the custom design system.
 - Products route is visible to `accounts` role for read-only access (needed for financial context when reviewing challans).
 
+---
+
+## Phase 4 — System Refinement, Bug Fixes & UI/UX Upgrade
+**Date:** 2026-08-09
+
+### What was built & fixed
+- **Zod Boolean Query Preprocessor:** Fixed `low_stock` boolean coercion in `product.schema.ts` using `z.preprocess()` so that string `"false"` correctly resolves to `false` instead of coercing to `true`.
+- **Customer Date Validation Flexibility:** Updated `follow_up_date` validation in `customer.schema.ts` to accept plain ISO date strings (`YYYY-MM-DD`) as well as full ISO datetime strings.
+- **Resilient Sequence Generator:** Refactored `generateChallanNumber()` in `challan.service.ts` to query the highest sequence number matching today's pattern `CH-YYYYMMDD-%` ordered descending, preventing duplicate challan number collisions across timezones or deleted draft numbers.
+- **FK User ID Guard in Product Initial Stock:** Fixed `createProduct` stock movement creation so `created_by` references a valid user ID.
+- **Live Operations Dashboard Metrics:** Added real-time operational metric widgets to Dashboard (`App.tsx`), giving instant visibility into Active Customers, Total Products, Low Stock Alerts, and Total & Draft Challan counts.
+- **Toast Notification System:** Created `Toast.tsx` component and integrated toast notifications across all form submissions, stock adjustments, and challan confirmations.
+- **Mobile Responsive Drawer:** Added mobile header toggle and sidebar drawer navigation in `App.tsx` and `index.css`.
+- **Micro-animations & CSS Design System:** Added active button scaling, spring modal transitions, and table hover micro-interactions while preserving exact PRD design system tokens.
+
+### Key decisions
+- **Query Preprocessor over Zod Coerce:** `z.coerce.boolean()` evaluates `Boolean("false")` to `true` in JavaScript. Preprocessing string values explicitly guarantees correct boolean conversion.
+- **Toast Notifications for User Feedback:** Replaced silent mutations with Toast popups so users receive immediate visual feedback for all key operations.
+
+

@@ -23,7 +23,10 @@ export const productQuerySchema = z.object({
   category: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  low_stock: z.coerce.boolean().optional(),
+  low_stock: z.preprocess(
+    (val) => (val === 'true' || val === '1' ? true : val === 'false' || val === '0' ? false : val),
+    z.boolean().optional()
+  ),
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useProduct, useCreateProduct, useUpdateProduct } from '../../hooks/useProducts';
 import { Spinner, ErrorState } from '../../components/ui/States';
+import { useToast } from '../../components/ui/Toast';
 
 const EMPTY = { name: '', sku: '', category: '', unit_price: '', current_stock: '0', min_stock_alert: '10', location: '' };
 
@@ -9,6 +10,7 @@ export default function ProductForm() {
   const { id } = useParams<{ id?: string }>();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const { data: existing, isLoading, isError } = useProduct(id ?? '');
   const create = useCreateProduct();
@@ -68,9 +70,11 @@ export default function ProductForm() {
     try {
       if (isEdit) {
         await update.mutateAsync(payload);
+        showToast({ type: 'success', title: 'Product Updated', message: 'Product details saved successfully.' });
         navigate(`/products/${id}`);
       } else {
         const res = await create.mutateAsync(payload);
+        showToast({ type: 'success', title: 'Product Created', message: 'New product added to inventory.' });
         navigate(`/products/${(res.data as { data: { id: string } }).data.id}`);
       }
     } catch (err: unknown) {
@@ -80,8 +84,11 @@ export default function ProductForm() {
         const fieldErrs: Record<string, string> = {};
         details.forEach((d) => { fieldErrs[d.field] = d.message; });
         setErrors(fieldErrs);
+        showToast({ type: 'error', title: 'Validation Failed', message: 'Please fix highlighted errors.' });
       } else {
-        setSubmitError(apiErr?.response?.data?.error?.message ?? 'Save failed');
+        const msg = apiErr?.response?.data?.error?.message ?? 'Save failed';
+        setSubmitError(msg);
+        showToast({ type: 'error', title: 'Save Failed', message: msg });
       }
     }
   };

@@ -9,10 +9,13 @@ function formatDateTime(s: string) {
   return new Date(s).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
+import { useToast } from '../../components/ui/Toast';
+
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const canWrite = user?.role === 'admin' || user?.role === 'warehouse';
 
   const { data: product, isLoading, isError, refetch } = useProduct(id!);
@@ -34,9 +37,15 @@ export default function ProductDetail() {
       await addMovement.mutateAsync({ quantity_changed: quantity, movement_type: movType, reason });
       setModalOpen(false);
       setQty(''); setReason('');
+      showToast({
+        type: movType === 'IN' ? 'success' : 'warning',
+        title: `Stock ${movType === 'IN' ? 'Added (+)' : 'Deducted (-)'}`,
+        message: `Recorded ${movType} movement of ${quantity} units.`,
+      });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message;
       setMovError(msg ?? 'Stock movement failed');
+      showToast({ type: 'error', title: 'Adjustment Failed', message: msg ?? 'Stock movement failed' });
     }
   };
 

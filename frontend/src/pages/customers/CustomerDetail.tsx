@@ -4,6 +4,7 @@ import { useCustomer, useAddCustomerNote } from '../../hooks/useCustomers';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spinner, EmptyState, ErrorState } from '../../components/ui/States';
 import { Badge } from '../../components/ui/Badge';
+import { useToast } from '../../components/ui/Toast';
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -30,12 +31,21 @@ export default function CustomerDetail() {
   const [noteText, setNoteText] = useState('');
   const [noteError, setNoteError] = useState('');
 
+  const { showToast } = useToast();
+
   const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteText.trim()) { setNoteError('Note cannot be empty'); return; }
     setNoteError('');
-    await addNote.mutateAsync(noteText.trim());
-    setNoteText('');
+    try {
+      await addNote.mutateAsync(noteText.trim());
+      setNoteText('');
+      showToast({ type: 'success', title: 'Note Added', message: 'Follow-up note appended to customer timeline.' });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message;
+      setNoteError(msg ?? 'Failed to add note');
+      showToast({ type: 'error', title: 'Failed', message: msg ?? 'Failed to add note' });
+    }
   };
 
   if (isLoading) {

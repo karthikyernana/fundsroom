@@ -182,9 +182,11 @@ Base URL: `http://localhost:3001`
 - Direct edits to `current_stock` via `PUT /products/:id` are blocked.
 - All stock changes must originate from either a confirmed sales challan or an explicit `POST /products/:id/stock-movements` call (`IN` / `OUT` with mandatory user attribution and audit reasoning).
 
-### 4. Custom Industrial Design System
-- Built with a custom color palette (`#18181B` deep charcoal, `#15803D` ledger green, `#C2410C` ink stamp, `#B91C1C` brick red).
-- Features signature elements like `StampBadge` for challan status (monospace, rotated stamp aesthetic), subtle hover interactions, and responsive card layouts.
+### 4. Custom Industrial Design System & UX Highlights
+- Built strictly with the PRD palette (`#EDE7DA` dusty parchment background, `#211D18` ink text, `#1F4D3D` bottle green ledger primary, `#C98A2C` secondary stamp, `#A6341A` brick alerts, `#4C6B3F` olive confirmations).
+- Features signature elements like `StampBadge` for challan status (monospace, rotated ink-stamp aesthetic), micro-animations (button active scaling, spring modal transitions), and a responsive mobile sidebar drawer.
+- **Live Operations Dashboard Metrics:** Displays real-time operational widgets for Active Customers, Total Products, Low Stock Alerts, and Challan Dispatches.
+- **Toast Notification System:** Provides instant color-coded visual alerts for all user actions (creations, edits, stock adjustments, confirmations, and errors).
 
 ---
 

@@ -4,6 +4,7 @@ import { useCreateChallan, useUpdateChallan, useChallan } from '../../hooks/useC
 import { useCustomers } from '../../hooks/useCustomers';
 import { useProducts } from '../../hooks/useProducts';
 import { Spinner, EmptyState } from '../../components/ui/States';
+import { useToast } from '../../components/ui/Toast';
 
 interface LineItem {
   product_id: string;
@@ -68,6 +69,8 @@ export default function ChallanForm() {
     }
   };
 
+  const { showToast } = useToast();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError('');
@@ -82,14 +85,17 @@ export default function ChallanForm() {
     try {
       if (isEdit) {
         await update.mutateAsync(payload);
+        showToast({ type: 'success', title: 'Challan Updated', message: 'Draft challan changes saved successfully.' });
         navigate(`/challans/${id}`);
       } else {
         const res = await create.mutateAsync(payload);
+        showToast({ type: 'success', title: 'Challan Created', message: 'Draft sales challan created successfully.' });
         navigate(`/challans/${(res.data as { data: { id: string } }).data.id}`);
       }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message;
       setSubmitError(msg ?? 'Failed to save challan');
+      showToast({ type: 'error', title: 'Save Failed', message: msg ?? 'Failed to save challan' });
     }
   };
 

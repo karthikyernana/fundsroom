@@ -6,6 +6,8 @@ import { Spinner, ErrorState } from '../../components/ui/States';
 import { StampBadge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 
+import { useToast } from '../../components/ui/Toast';
+
 function formatDate(s: string) {
   return new Date(s).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
@@ -14,6 +16,7 @@ export default function ChallanDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const { data: challan, isLoading, isError, refetch } = useChallan(id!);
   const confirm = useConfirmChallan(id!);
@@ -32,15 +35,23 @@ export default function ChallanDetail() {
     try {
       await confirm.mutateAsync();
       setConfirmOpen(false);
+      showToast({ type: 'success', title: 'Challan Confirmed', message: 'Stock has been deducted and dispatch confirmed.' });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message;
       setActionError(msg ?? 'Confirmation failed');
+      showToast({ type: 'error', title: 'Confirmation Failed', message: msg ?? 'Stock check or confirmation failed' });
     }
   };
 
   const handleCancel = async () => {
-    await cancel.mutateAsync();
-    setCancelOpen(false);
+    try {
+      await cancel.mutateAsync();
+      setCancelOpen(false);
+      showToast({ type: 'info', title: 'Challan Cancelled', message: 'Challan status set to cancelled.' });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message;
+      showToast({ type: 'error', title: 'Cancel Failed', message: msg ?? 'Failed to cancel challan' });
+    }
   };
 
   if (isLoading) return <div className="main-content"><div className="state-container"><Spinner size="lg" /></div></div>;

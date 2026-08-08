@@ -77,39 +77,16 @@ export async function getProduct(id: string) {
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
-export async function createProduct(data: CreateProductInput) {
-  // Check SKU uniqueness
-  const existing = await prisma.products.findUnique({ where: { sku: data.sku } });
-  if (existing) throw new AppError(409, `SKU "${data.sku}" already exists`);
-
-  const product = await prisma.products.create({
-    data: {
-      name: data.name,
-      sku: data.sku,
-      category: data.category,
-      unit_price: data.unit_price,
-      current_stock: data.current_stock ?? 0,
-      min_stock_alert: data.min_stock_alert ?? 10,
-      location: data.location || undefined,
-    },
-  });
-
-  // If created with initial stock > 0, record an IN movement
-  if (product.current_stock > 0) {
-    await prisma.stock_movements.create({
-      data: {
-        product_id: product.id,
-        quantity_changed: product.current_stock,
-        movement_type: 'IN',
-        reason: 'Initial stock on product creation',
-        // System action — no user context here; caller should pass userId
-        // This is handled at the route level below
-        created_by: product.id, // placeholder — route overrides this
-      },
-    });
+export async function createProduct(data: CreateProductInput, userId?: string) {
+  if (userId) {
+    return createProductWithUser(data, userId);
   }
 
-  return product;
+  // Fallback: find first admin/user to record initial movement if needed
+  const defaultUser = await prisma.users.findFirst({ select: { id: true } });
+  if (!defaultUser) throw new AppError(500, 'System user missing');
+
+  return createProductWithUser(data, defaultUser.id);
 }
 
 // ─── Create with userId (used by route handler) ───────────────────────────────

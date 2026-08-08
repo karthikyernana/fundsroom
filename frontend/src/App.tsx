@@ -52,6 +52,7 @@ const ChallanIcon = () => (
 // ─── AppShell ─────────────────────────────────────────────────────────────────
 function AppShell({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = React.useState(false);
   const role = user?.role;
 
   const canSeeCustomers = role === 'admin' || role === 'sales' || role === 'accounts';
@@ -63,35 +64,49 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {mobileOpen && (
+        <div className="sidebar-backdrop" onClick={() => setMobileOpen(false)} />
+      )}
+      <aside className={`sidebar${mobileOpen ? ' open' : ''}`}>
         {/* Logo */}
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-title">FundsRoom</div>
-          <div className="sidebar-logo-sub">Operations Portal</div>
+        <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div className="sidebar-logo-title">FundsRoom</div>
+            <div className="sidebar-logo-sub">Operations Portal</div>
+          </div>
+          <button
+            type="button"
+            className="mobile-nav-toggle"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+            style={{ background: 'none', border: 'none', color: '#fff', padding: 4 }}
+          >
+            ✕
+          </button>
         </div>
 
         {/* Nav */}
         <nav className="sidebar-nav" aria-label="Main navigation">
           <div className="nav-section-label">Workspace</div>
 
-          <NavLink to="/" end className={navLinkClass}>
+          <NavLink to="/" end className={navLinkClass} onClick={() => setMobileOpen(false)}>
             <DashboardIcon /> Dashboard
           </NavLink>
 
           {canSeeCustomers && (
-            <NavLink to="/customers" className={navLinkClass}>
+            <NavLink to="/customers" className={navLinkClass} onClick={() => setMobileOpen(false)}>
               <CustomerIcon /> Customers
             </NavLink>
           )}
 
           {canSeeProducts && (
-            <NavLink to="/products" className={navLinkClass}>
+            <NavLink to="/products" className={navLinkClass} onClick={() => setMobileOpen(false)}>
               <ProductIcon /> Products
             </NavLink>
           )}
 
           {canSeeChallans && (
-            <NavLink to="/challans" className={navLinkClass}>
+            <NavLink to="/challans" className={navLinkClass} onClick={() => setMobileOpen(false)}>
               <ChallanIcon /> Challans
             </NavLink>
           )}
@@ -120,6 +135,17 @@ function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main style={{ flex: 1, overflowY: 'auto', minHeight: '100vh' }}>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px var(--sp3)', background: '#fff', borderBottom: '1px solid var(--border)' }} className="mobile-header">
+          <button
+            type="button"
+            className="mobile-nav-toggle"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+          >
+            ☰
+          </button>
+          <div style={{ marginLeft: 12, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>FundsRoom Portal</div>
+        </div>
         {children}
       </main>
     </div>
@@ -127,39 +153,78 @@ function AppShell({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
+import { useCustomers } from './hooks/useCustomers';
+import { useProducts } from './hooks/useProducts';
+import { useChallans } from './hooks/useChallans';
+
 function Dashboard() {
   const { user } = useAuth();
   const role = user?.role;
 
+  const canSeeCustomers = role === 'admin' || role === 'sales' || role === 'accounts';
+  const canSeeProducts = role === 'admin' || role === 'warehouse' || role === 'accounts';
+
+  const { data: customerData } = useCustomers({ limit: 1 });
+  const { data: productData } = useProducts({ limit: 1 });
+  const { data: lowStockData } = useProducts({ low_stock: true, limit: 1 });
+  const { data: challanData } = useChallans({ limit: 1 });
+  const { data: draftChallanData } = useChallans({ status: 'draft', limit: 1 });
+
+  const metrics = [
+    { label: 'Active Customers', value: customerData?.meta.total ?? '—', color: 'var(--ledger)', visible: canSeeCustomers, to: '/customers' },
+    { label: 'Total Products', value: productData?.meta.total ?? '—', color: 'var(--ledger)', visible: canSeeProducts, to: '/products' },
+    { label: 'Low Stock Alerts', value: lowStockData?.meta.total ?? '—', color: 'var(--brick)', visible: canSeeProducts, to: '/products?low_stock=true' },
+    { label: 'Total Challans', value: challanData?.meta.total ?? '—', color: 'var(--stamp)', visible: true, to: '/challans' },
+    { label: 'Draft Challans', value: draftChallanData?.meta.total ?? '—', color: 'var(--stamp)', visible: true, to: '/challans?status=draft' },
+  ].filter((m) => m.visible);
+
   const tiles = [
-    { to: '/customers', icon: <CustomerIcon />, label: 'Customers', desc: 'Manage your customer relationships and follow-ups', visible: role === 'admin' || role === 'sales' || role === 'accounts' },
-    { to: '/products', icon: <ProductIcon />, label: 'Products', desc: 'Track inventory levels and stock movements', visible: role === 'admin' || role === 'warehouse' || role === 'accounts' },
-    { to: '/challans', icon: <ChallanIcon />, label: 'Challans', desc: 'Create and dispatch sales challans', visible: true },
+    { to: '/customers', icon: <CustomerIcon />, label: 'Customers CRM', desc: 'Manage lead and active customer relationships and follow-up timelines', visible: canSeeCustomers },
+    { to: '/products', icon: <ProductIcon />, label: 'Inventory & Stock', desc: 'Track current stock levels, audit movements, and receive low-stock alerts', visible: canSeeProducts },
+    { to: '/challans', icon: <ChallanIcon />, label: 'Sales Challans', desc: 'Draft, verify stock, and dispatch sales challans with transactional guarantees', visible: true },
   ].filter((t) => t.visible);
 
   return (
     <div className="main-content">
       <div className="page-header">
         <div>
-          <h1 className="page-title">Dashboard</h1>
+          <h1 className="page-title">Operations Dashboard</h1>
           <p className="page-subtitle">Welcome back, {user?.name}</p>
         </div>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', padding: '4px 12px', background: 'var(--ledger-dim)', color: 'var(--ledger)', borderRadius: 999, textTransform: 'capitalize' }}>
-          {user?.role}
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', padding: '4px 12px', background: 'var(--ledger-dim)', color: 'var(--ledger)', borderRadius: 999, textTransform: 'capitalize', fontWeight: 600 }}>
+          Role: {user?.role}
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--sp3)' }}>
+      {/* Metrics Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--sp2)', marginBottom: 'var(--sp4)' }}>
+        {metrics.map((m) => (
+          <NavLink key={m.label} to={m.to} style={{ textDecoration: 'none' }}>
+            <div className="card" style={{ cursor: 'pointer', transition: 'all 150ms ease' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = ''; (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-sm)'; }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{m.label}</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '2rem', fontWeight: 700, color: m.color, marginTop: 4 }}>
+                {m.value}
+              </div>
+            </div>
+          </NavLink>
+        ))}
+      </div>
+
+      {/* Module Navigation Tiles */}
+      <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: 'var(--sp2)', color: 'var(--ink)' }}>Operational Modules</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--sp3)' }}>
         {tiles.map((tile) => (
           <NavLink key={tile.to} to={tile.to} style={{ textDecoration: 'none' }}>
-            <div className="card" style={{ cursor: 'pointer', transition: 'box-shadow 150ms, transform 150ms' }}
+            <div className="card" style={{ cursor: 'pointer', transition: 'box-shadow 150ms, transform 150ms', height: '100%' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow)'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'var(--shadow-sm)'; (e.currentTarget as HTMLDivElement).style.transform = ''; }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp2)', marginBottom: 'var(--sp2)' }}>
-                <div style={{ width: 40, height: 40, background: 'var(--ledger)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                <div style={{ width: 44, height: 44, background: 'var(--ledger)', borderRadius: 'var(--radius)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
                   {tile.icon}
                 </div>
-                <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--ink)' }}>{tile.label}</h2>
+                <h3 style={{ fontSize: '1.0625rem', fontWeight: 600, color: 'var(--ink)' }}>{tile.label}</h3>
               </div>
               <p style={{ fontSize: '0.875rem', color: 'var(--ink-muted)', lineHeight: 1.5 }}>{tile.desc}</p>
             </div>

@@ -31,16 +31,22 @@ async function generateChallanNumber(): Promise<string> {
     String(date.getDate()).padStart(2, '0'),
   ].join('');
 
-  // Count existing challans for today to produce the sequence
-  const todayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const todayEnd = new Date(todayStart.getTime() + 86400000);
-
-  const count = await prisma.challans.count({
-    where: { created_at: { gte: todayStart, lt: todayEnd } },
+  const prefix = `CH-${datePart}-`;
+  const latest = await prisma.challans.findFirst({
+    where: { challan_number: { startsWith: prefix } },
+    orderBy: { challan_number: 'desc' },
+    select: { challan_number: true },
   });
 
-  const seq = String(count + 1).padStart(4, '0');
-  return `CH-${datePart}-${seq}`;
+  let seqNum = 1;
+  if (latest) {
+    const parts = latest.challan_number.split('-');
+    const lastSeq = parseInt(parts[parts.length - 1], 10);
+    if (!isNaN(lastSeq)) seqNum = lastSeq + 1;
+  }
+
+  const seq = String(seqNum).padStart(4, '0');
+  return `${prefix}${seq}`;
 }
 
 // ─── List ─────────────────────────────────────────────────────────────────────

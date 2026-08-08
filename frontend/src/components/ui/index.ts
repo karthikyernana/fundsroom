@@ -6,3 +6,4 @@ export { Spinner, EmptyState, ErrorState } from './States';
 export { Badge, StampBadge } from './Badge';
 export { Modal } from './Modal';
 export { Pagination } from './Pagination';
+export { ToastProvider, useToast } from './Toast';
