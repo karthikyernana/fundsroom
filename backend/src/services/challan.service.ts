@@ -298,7 +298,7 @@ export async function confirmChallan(id: string, userId: string) {
         UPDATE "products"
         SET    "current_stock" = "current_stock" - ${item.quantity},
                "updated_at"   = NOW()
-        WHERE  "id"            = ${item.product_id}::uuid
+        WHERE  "id"            = ${item.product_id}
         AND    "current_stock" >= ${item.quantity}
       `;
 

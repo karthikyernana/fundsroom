@@ -166,7 +166,7 @@ export async function addStockMovement(
       UPDATE "products"
       SET    "current_stock" = "current_stock" - ${data.quantity_changed},
              "updated_at"   = NOW()
-      WHERE  "id"           = ${productId}::uuid
+      WHERE  "id"           = ${productId}
       AND    "current_stock" >= ${data.quantity_changed}
     `;
 
