@@ -1,127 +1,117 @@
 # FundsRoom — Mini ERP + CRM Operations Portal
 
-> **Full Stack Developer Case Study Submission**  
-> **Built for:** FundsRoom Infotech Full Stack Developer Intern Case Study  
-> **Candidate:** Karthik Yernana (B.Tech CSE, 2027)  
+Technical documentation and project submission overview for the Mini ERP + CRM system built according to the case study specifications.
 
 ---
 
-## 🚀 Live Deployment Links
+## 1. Project Links & Submissions
 
-- **Live Frontend Application:** [`https://fundsroom-green.vercel.app/`](https://fundsroom-green.vercel.app/)
-- **Live Backend REST API:** [`https://fundsroom-lp8g.onrender.com`](https://fundsroom-lp8g.onrender.com)
-- **API Health Check:** [`https://fundsroom-lp8g.onrender.com/health`](https://fundsroom-lp8g.onrender.com/health)
-- **GitHub Repository:** [`https://github.com/karthikyernana/fundsroom`](https://github.com/karthikyernana/fundsroom)
-- **Postman API Collection:** [`FundsRoom.postman_collection.json`](./FundsRoom.postman_collection.json)
-- **Project PDF Documentation:** [`FundsRoom_Project_Documentation.pdf`](./FundsRoom_Project_Documentation.pdf)
-- **Development Log:** [`DEVLOG.md`](./DEVLOG.md)
+- **GitHub Repository:** `[Insert your GitHub Repository URL]`
+- **Live Frontend URL:** `[Insert your Live Frontend URL]`
+- **Live Backend API URL:** `[Insert your Live Backend API URL]`
+- **API Health Check:** `[Insert your Live Backend API URL]/health`
+- **Postman API Collection:** Included in root directory as `FundsRoom.postman_collection.json`
 
 ---
 
-## 🔐 Test Login Credentials
+## 2. Test Login Credentials & Permission Matrix
 
-All accounts share the default password: **`password123`**
+All pre-seeded test accounts share the default password: `password123`
 
-| Role | Email | Password | Scope & Module Permissions |
+| Role | Email | Password | Access Scope & Module Permissions |
 |---|---|---|---|
-| 👑 **Admin** | `admin@fundsroom.com` | `password123` | Full system access. Can onboard/manage internal user accounts via `/users`. |
-| 📈 **Sales Lead** | `sales@fundsroom.com` | `password123` | Full CRM access, lead assignment, "My Accounts" filter, draft & confirm challans. |
-| 💼 **Sales Rep 2** | `sales2@fundsroom.com` | `password123` | Separate assigned customer portfolio, lead tracking, draft & confirm challans. |
-| 📦 **Warehouse** | `warehouse@fundsroom.com` | `password123` | Product & Stock CRUD, manual stock movements, read customer context, dispatch challans. |
-| 🧾 **Accounts** | `accounts@fundsroom.com` | `password123` | Read-only across all modules, line item snapshot inspection, Tax Invoice & Challan PDF export. |
+| Admin | admin@fundsroom.com | password123 | Full system access across all modules. Admin user onboarding via `/users`. |
+| Sales Lead | sales@fundsroom.com | password123 | Full CRM access, sales rep lead assignment, portfolio filtering, draft & confirm challans. |
+| Sales Rep 2 | sales2@fundsroom.com | password123 | Assigned customer portfolio tracking, lead management, draft & confirm sales challans. |
+| Warehouse | warehouse@fundsroom.com | password123 | Product CRUD, manual stock movements, read customer context, dispatch challans. |
+| Accounts | accounts@fundsroom.com | password123 | Read-only oversight across all modules, snapshot pricing inspection, B2B Tax Invoice export. |
 
 ---
 
-## 🛠️ Technology Stack
+## 3. Technology Stack
 
-| Layer | Technology | Rationale |
-|---|---|---|
-| **Backend Runtime** | Node.js (v18+) | Non-blocking I/O, fast execution, seamless TypeScript integration. |
-| **Framework** | Express.js + TypeScript | Lightweight, strict type safety, custom middleware pipeline. |
-| **Database** | PostgreSQL (Supabase) | ACID compliance, row locking, relational integrity, raw SQL support. |
-| **ORM** | Prisma ORM | Type-safe queries, migration control, schema-driven model definitions. |
-| **Validation** | Zod | Runtime schema validation on every write request with field-level errors. |
-| **Authentication** | JWT (`jsonwebtoken`) + `bcryptjs` | Stateless token auth with role claims & 24h expiration. |
-| **Frontend** | React 19 + TypeScript (Vite) | High performance, modular component architecture, fast HMR. |
-| **State & Fetching** | TanStack Query v5 | Server state management, auto-caching, and optimistic cache invalidation. |
-| **Styling & UI** | Plain CSS (Custom Tokens) | Zero heavy UI frameworks — precision design system following PRD tokens. |
-| **Typography** | Plus Jakarta Sans + Instrument Serif + IBM Plex Mono | Professional financial editorial typography hierarchy. |
+- **Backend Runtime:** Node.js (v18+) with TypeScript
+- **Backend Framework:** Express.js
+- **Database:** PostgreSQL (Supabase / Neon)
+- **ORM & Validation:** Prisma ORM with Zod runtime validation
+- **Authentication:** Stateless JWT (`jsonwebtoken`) with `bcryptjs` password hashing
+- **Frontend Framework:** React 19 + TypeScript (built with Vite)
+- **State & Data Fetching:** TanStack Query (React Query v5) with Axios
+- **Styling:** Custom CSS design system adhering to specified color & typography tokens
 
 ---
 
-## 🏗️ Core Architecture & Business Logic
+## 4. Architecture & Business Logic
 
-### 1. Atomic Transaction Safety (§5 — Preventing Stock Overdraw)
-- **Challenge:** Outbound challans can cause negative stock if two concurrent requests attempt to confirm a challan for the last remaining unit (TOCTOU race condition).
-- **Solution:** Stock deduction uses a single atomic SQL statement via Prisma `$executeRaw`:
-  ```sql
-  UPDATE "products"
-  SET "current_stock" = "current_stock" - $qty, "updated_at" = NOW()
-  WHERE "id" = $productId::uuid AND "current_stock" >= $qty;
-  ```
-- **Guarantees:**
-  - `$executeRaw` returns affected row count (1 = success, 0 = stock was modified/insufficient at instant of execution).
-  - If any single item in a multi-item challan fails, the entire Prisma `$transaction` aborts and rolls back stock for earlier items.
-  - A PostgreSQL database constraint (`CHECK ("current_stock" >= 0)`) acts as an engine-level backstop.
+### Atomic Transaction Safety (Preventing Negative Stock)
+Outbound sales challan confirmation uses an atomic SQL update via Prisma `$executeRaw` to prevent overdrawing inventory during concurrent requests:
 
-### 2. Historical Data Integrity via Line Item Snapshots (§4)
-- When a draft challan is created, product name (`product_name_snapshot`), SKU (`product_sku_snapshot`), and unit price (`unit_price_snapshot`) are frozen at creation time.
-- Future catalog price changes or product renames will never alter historical financial records or confirmed dispatch values.
+```sql
+UPDATE "products"
+SET "current_stock" = "current_stock" - $qty, "updated_at" = NOW()
+WHERE "id" = $productId::uuid AND "current_stock" >= $qty;
+```
 
-### 3. Strict Audit Trail Enforcement
-- Direct edits to `current_stock` via `PUT /products/:id` are blocked.
-- Stock changes must originate from either a confirmed sales challan or an explicit `POST /products/:id/stock-movements` call (`IN` / `OUT` with mandatory user attribution and audit reasoning).
+If stock is insufficient at the instant of execution, the transaction cleanly aborts and rolls back all line items without affecting inventory. A database-level `CHECK ("current_stock" >= 0)` constraint serves as an engine backstop.
 
-### 4. Single-Logo High-Craft Enterprise UI
-- Built strictly with the PRD palette (`#EDE7DA` parchment background, `#211D18` ink text, `#1F4D3D` bottle green primary).
-- **Single Authoritative Logo:** Responsive logo architecture displays a single brand header on desktop, hiding redundant form logos, while adapting seamlessly to mobile (`<899px`).
-- **Interactive Animations:** Concentric architectural SVG vault graphic (`spinSlow`), floating ambient background lighting (`floatAmbient`), and vertical-centered input eye toggles.
+### Historical Line Item Snapshots
+When a draft challan is created, product name, SKU, and unit price are saved as static snapshot fields on `challan_items`. Future catalog price changes or product renames will never corrupt historical sales records.
+
+### Stock Audit Trail
+Direct edits to product stock via general update endpoints are disabled. All inventory adjustments must originate from either a confirmed sales challan or an explicit stock movement entry with user attribution and an audit reason.
 
 ---
 
-## 🧪 Automated Integration Test Suite (54 Tests)
+## 5. Core Modules & Features
 
-A comprehensive integration test suite is included in `backend/src/__tests__/api.test.ts`.
+### Authentication & Roles
+- JWT-based authentication with role claims.
+- Guarded routes enforcing per-role permissions for Admin, Sales, Warehouse, and Accounts.
+- User management interface (`/users`) for Admin account creation.
 
-### Run Tests:
+### Customer CRM Module
+- Customer management with fields for name, mobile, email, business name, GST number, customer type, address, status, follow-up date, and assigned sales representative.
+- Customer search, portfolio filtering, follow-up date validation, and scrollable activity notes timeline.
+
+### Product & Inventory Module
+- Product management with SKU formatting, category assignment, unit pricing, location tracking, and low-stock alert thresholds.
+- Audit-logged stock movements tracking quantity changed, movement type (IN/OUT), audit reason, user attribution, and timestamp.
+
+### Sales Challan Module
+- Sales challan creation with customer selection, multi-product line items, live stock checks, overstock warnings, and server-generated sequential numbering (`CH-YYYYMMDD-NNNN`).
+- Challan lifecycle management (Draft, Confirmed, Cancelled) and printable B2B Tax Invoice / Delivery Challan layout.
+
+---
+
+## 6. Automated Integration Test Suite
+
+The backend includes an integration test suite verifying all 23 case study requirements across authentication, customer CRM, product inventory, and sales challan workflows.
+
+### Running Tests
 ```bash
 cd backend
 npm test
 ```
 
-### Test Coverage Highlights:
-- **Auth (9 tests):** Valid logins across 4 roles, password hashing, invalid credentials, malformed tokens, `/auth/me` user profile.
-- **Customers (17 tests):** Full CRUD, role permissions, search, pagination, assigned sales rep filtering, GST regex format validation (`^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$`), follow-up date validation.
-- **Products & Stock (12 tests):** SKU uppercase transformation, duplicate SKU rejection, negative stock prevention, stock movement logging, `low_stock` filtering, and exact zero stock boundary test.
-- **Challans (14 tests):** Sequential `CH-YYYYMMDD-NNNN` generation, line item consolidation, draft edit restrictions, atomic confirm stock deduction, 409 insufficient stock rollback proof, and concurrent double-confirm race protection.
-- **System Routes (2 tests):** `/health` endpoint and 404 JSON fallback handler.
-
-**All 54 tests pass with 100% coverage of PRD requirements.**
-
 ---
 
-## 💻 Local Development Setup
-
-### Prerequisites
-- Node.js v18+
-- PostgreSQL database connection URI (Supabase / Neon / local PostgreSQL)
+## 7. Local Development Setup
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/karthikyernana/fundsroom.git
+git clone [Insert your GitHub Repository URL]
 cd fundsroom
 
-# Install backend & frontend dependencies
 cd backend && npm install
 cd ../frontend && npm install
 ```
 
-### 2. Configure Environment Variables
+### 2. Environment Configuration
 
 Create `backend/.env`:
 ```env
-DATABASE_URL="postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres"
-JWT_SECRET="super-secret-key-32-chars-long"
+DATABASE_URL="[Insert your PostgreSQL connection URI]"
+JWT_SECRET="[Insert a 32-character secret key]"
 PORT=3001
 CORS_ORIGIN="http://localhost:5173"
 NODE_ENV="development"
@@ -139,66 +129,35 @@ npx prisma migrate dev --name init
 npm run db:seed
 ```
 
-### 4. Start Local Servers
+### 4. Run Development Servers
 ```bash
-# Terminal 1 — Backend API
+# Terminal 1 — Backend
 cd backend && npm run dev
 
-# Terminal 2 — Frontend Application
+# Terminal 2 — Frontend
 cd frontend && npm run dev
 ```
 
 ---
 
-## 🌐 Production Deployment Architecture
+## 8. Deployment Setup
 
-### 1. Backend API (Render)
-- **Deployment Platform:** Render Web Service
-- **Build Command:** `npm install && npx prisma generate && npm run build`
-- **Start Command:** `npm start`
-- **Environment Variables:** `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV=production`, `CORS_ORIGIN=https://fundsroom-green.vercel.app`
+### Backend (Render)
+1. Create a Web Service connected to your repository with root directory set to `backend`.
+2. Build Command: `npm install && npx prisma generate && npm run build`
+3. Start Command: `npm start`
+4. Set Environment Variables: `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV=production`, `CORS_ORIGIN=[Insert your Live Frontend URL]`
 
-### 2. Frontend Application (Vercel)
-- **Deployment Platform:** Vercel Static Site
-- **Build Command:** `npm run build`
-- **Output Directory:** `dist`
-- **SPA Rewrites:** Handled via `frontend/vercel.json` (`/.*` -> `/index.html`)
-- **Environment Variable:** `VITE_API_URL=https://fundsroom-lp8g.onrender.com`
-
----
-
-## 📖 API Documentation Reference
-
-Base URL: `https://fundsroom-lp8g.onrender.com`
-
-| Method | Endpoint | Auth | Allowed Roles | Description |
-|---|---|---|---|---|
-| `POST` | `/auth/login` | No | All | Authenticate user & return JWT token |
-| `GET` | `/auth/me` | Yes | All | Get current authenticated user profile |
-| `GET` | `/auth/sales-reps` | Yes | All | List sales representatives for lead assignment |
-| `GET` | `/auth/users` | Yes | Admin | List all system users |
-| `POST` | `/auth/register` | Yes | Admin | Onboard new user (Admin, Sales, Warehouse, Accounts) |
-| `GET` | `/customers` | Yes | All | List customers (supports `search`, `status`, `assigned_to`, `my_customers`, `page`, `limit`) |
-| `POST` | `/customers` | Yes | Admin, Sales | Create customer record with assigned sales rep |
-| `GET` | `/customers/:id` | Yes | All | Get customer detail with follow-up notes timeline |
-| `PUT` | `/customers/:id` | Yes | Admin, Sales | Update customer profile & assigned sales rep |
-| `POST` | `/customers/:id/notes` | Yes | Admin, Sales | Append follow-up note to customer timeline |
-| `GET` | `/products` | Yes | All | List products (supports `search`, `category`, `low_stock`, `page`, `limit`) |
-| `POST` | `/products` | Yes | Admin, Warehouse | Create product record & log opening stock movement |
-| `GET` | `/products/:id` | Yes | All | Get product detail with movement count |
-| `PUT` | `/products/:id` | Yes | Admin, Warehouse | Update product details (price, alert threshold, location) |
-| `POST` | `/products/:id/stock-movements` | Yes | Admin, Warehouse | Record manual `IN` / `OUT` stock movement |
-| `GET` | `/products/:id/stock-movements` | Yes | All | Retrieve complete audit-logged stock movement timeline |
-| `GET` | `/challans` | Yes | All | List sales challans (supports `status`, `customer`, `page`, `limit`) |
-| `POST` | `/challans` | Yes | Admin, Sales, Warehouse | Create draft sales challan with snapshot pricing |
-| `GET` | `/challans/:id` | Yes | All | Get challan details with line item snapshots |
-| `PUT` | `/challans/:id` | Yes | Admin, Sales, Warehouse | Update draft challan items |
-| `POST` | `/challans/:id/confirm` | Yes | Admin, Sales, Warehouse | Confirm challan & atomically deduct stock |
-| `POST` | `/challans/:id/cancel` | Yes | Admin, Warehouse | Cancel draft or un-dispatched challan |
+### Frontend (Vercel)
+1. Import repository into Vercel with root directory set to `frontend`.
+2. Framework Preset: Vite
+3. Build Command: `npm run build`
+4. Output Directory: `dist`
+5. Set Environment Variable: `VITE_API_URL=[Insert your Live Backend API URL]`
 
 ---
 
-## ⚠️ Known Limitations & Tradeoffs
+## 9. Known Limitations
 
-1. **In-Memory Post-Filtering for `low_stock`:** Prisma ORM lacks native column-to-column comparison queries (e.g. `WHERE current_stock <= min_stock_alert`). The service fetches category/search filtered records and post-filters in JS. For enterprise scale (100k+ SKUs), this would be refactored to raw SQL `$queryRaw`.
-2. **Stateless JWT Expiration:** Tokens expire after 24 hours. Immediate token revocation prior to expiration would require a Redis token blocklist, omitted to keep deployment lightweight.
+1. **In-Memory Low-Stock Filtering:** Low-stock alerts filter results in application logic due to ORM column-to-column query constraints. For enterprise scale (100k+ SKUs), this would be refactored to raw SQL.
+2. **Stateless JWT Lifetime:** Tokens expire after 24 hours. Token revocation prior to expiration requires a blocklist store.
