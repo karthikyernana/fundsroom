@@ -10,6 +10,7 @@
 
 - **Live Frontend Application:** [`https://fundsroom-green.vercel.app/`](https://fundsroom-green.vercel.app/)
 - **Live Backend REST API:** [`https://fundsroom-lp8g.onrender.com`](https://fundsroom-lp8g.onrender.com)
+- **Interactive API Documentation Page:** [`https://fundsroom-lp8g.onrender.com/docs`](https://fundsroom-lp8g.onrender.com/docs)
 - **API Health Check:** [`https://fundsroom-lp8g.onrender.com/health`](https://fundsroom-lp8g.onrender.com/health)
 - **GitHub Repository:** [`https://github.com/karthikyernana/fundsroom`](https://github.com/karthikyernana/fundsroom)
 - **Postman API Collection:** [`FundsRoom.postman_collection.json`](./FundsRoom.postman_collection.json)
