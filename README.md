@@ -19,9 +19,10 @@ Internal operations tool for a wholesale distribution business. Covers Customer 
 | Role | Email | Password | Allowed Access |
 |---|---|---|---|
 | **Admin** | `admin@fundsroom.com` | `password123` | Full access across all modules. Can create/manage users. |
-| **Sales** | `sales@fundsroom.com` | `password123` | Customer CRUD, Read products (for challan stock checks), Create/Confirm/Edit draft challans |
+| **Sales Rep 1** | `sales@fundsroom.com` | `password123` | Assigned customer CRM portfolio, "My Accounts" filter, customer creation & follow-ups, draft/confirm challans |
+| **Sales Rep 2** | `sales2@fundsroom.com` | `password123` | Separate assigned customer portfolio, lead tracking, draft & confirm challans |
 | **Warehouse** | `warehouse@fundsroom.com` | `password123` | Product & Stock CRUD, Read customers (for challan dispatch context), Create/Confirm/Cancel challans |
-| **Accounts** | `accounts@fundsroom.com` | `password123` | Read-only across all modules |
+| **Accounts** | `accounts@fundsroom.com` | `password123` | Read-only across all modules, line item snapshot inspection, Tax Invoice & Challan PDF export |
 
 ---
 
