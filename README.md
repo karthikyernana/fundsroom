@@ -13,7 +13,6 @@
 - **API Health Check:** [`https://fundsroom-lp8g.onrender.com/health`](https://fundsroom-lp8g.onrender.com/health)
 - **GitHub Repository:** [`https://github.com/karthikyernana/fundsroom`](https://github.com/karthikyernana/fundsroom)
 - **Postman API Collection:** [`FundsRoom.postman_collection.json`](./FundsRoom.postman_collection.json)
-- **Project PDF Documentation:** [`FundsRoom_Project_Documentation.pdf`](./FundsRoom_Project_Documentation.pdf)
 - **Development Log:** [`DEVLOG.md`](./DEVLOG.md)
 
 ---
