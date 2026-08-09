@@ -13,7 +13,13 @@ const PORT = process.env.PORT ?? 3001;
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, postman) or any localhost/127.0.0.1 origin
+    if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin === process.env.CORS_ORIGIN) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true,
 }));
 
@@ -43,8 +49,9 @@ app.use((_req, res) => {
 app.use(errorHandler);
 
 // ─── Start ───────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
-  console.log(`🚀 FundsRoom API running on http://localhost:${PORT}`);
+const portNum = Number(PORT);
+app.listen(portNum, '0.0.0.0', () => {
+  console.log(`🚀 FundsRoom API running on http://localhost:${portNum}`);
   console.log(`   Environment: ${process.env.NODE_ENV ?? 'development'}`);
 });
 
