@@ -2,12 +2,36 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+// ─── Unified Canonical FundsRoom Logo Mark ────────────────────────────────────
+const LogoMark = ({ size = 24, color = 'currentColor' }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+  </svg>
+);
+
+// ─── Animated Architectural Vault Geometry Artwork for Hero Panel ─────────────
+const HeroVaultArtwork = () => (
+  <div className="login-hero-artwork">
+    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="95" stroke="rgba(226,217,200,0.12)" strokeWidth="1" strokeDasharray="4 4" />
+      <circle cx="100" cy="100" r="75" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5" />
+      <circle cx="100" cy="100" r="55" stroke="rgba(226,217,200,0.25)" strokeWidth="1" strokeDasharray="6 6" />
+      <rect x="60" y="60" width="80" height="80" rx="12" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" transform="rotate(45 100 100)" />
+      <rect x="70" y="70" width="60" height="60" rx="8" stroke="rgba(226,217,200,0.4)" strokeWidth="1.5" />
+      <circle cx="100" cy="100" r="16" fill="rgba(255,255,255,0.15)" stroke="#E2D9C8" strokeWidth="2" />
+      <circle cx="100" cy="100" r="5" fill="#FFFFFF" />
+    </svg>
+  </div>
+);
+
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -21,180 +45,172 @@ export default function Login() {
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { error?: { message?: string } } } })
-          ?.response?.data?.error?.message ?? 'Login failed. Check your credentials.';
-        setError(message);
+          ?.response?.data?.error?.message ?? 'Invalid credentials. Please verify your email and password.';
+      setError(message);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'var(--paper)',
-      backgroundImage: 'radial-gradient(var(--border) 1px, transparent 1px)',
-      backgroundSize: '24px 24px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 'var(--sp3)'
-    }}>
-      <div style={{ width: '100%', maxWidth: '440px' }}>
+    <div className="login-root">
+      <div className="login-split-wrapper">
+        
+        {/* ───────────────────────────────────────────────────────────────────
+            LEFT HERO SHOWCASE PANEL (Single Authoritative Logo for Desktop)
+        ─────────────────────────────────────────────────────────────────── */}
+        <div className="login-hero-panel">
+          {/* Subtle Banknote/Ledger background mesh pattern & floating ambient orbs */}
+          <div className="login-hero-pattern" />
+          <div className="login-hero-glow-1" />
+          <div className="login-hero-glow-2" />
 
-        {/* Logo / heading */}
-        <div style={{ textAlign: 'center', marginBottom: 'var(--sp5)', animation: 'loginEnter 400ms cubic-bezier(0.16,1,0.3,1) both', animationDelay: '0ms' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '56px',
-            height: '56px',
-            background: 'var(--ledger)',
-            borderRadius: 'var(--radius-lg)',
-            marginBottom: 'var(--sp2)',
-            boxShadow: '0 4px 16px rgba(31,77,61,0.3)'
-          }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-            </svg>
+          {/* Top Brand Logo Header (DESKTOP SINGLE LOGO) */}
+          <div className="login-hero-header">
+            <div className="login-hero-logo-box">
+              <LogoMark size={26} color="#FFFFFF" />
+            </div>
+            <div>
+              <span style={{ fontFamily: 'var(--font-brand)', fontWeight: 800, fontSize: '1.375rem', letterSpacing: '0.08em', color: '#FFFFFF', display: 'block', lineHeight: 1 }}>
+                FUNDSROOM
+              </span>
+              <span style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '0.625rem', letterSpacing: '0.14em', color: '#E2D9C8', textTransform: 'uppercase', marginTop: '4px' }}>
+                Operations Portal
+              </span>
+            </div>
           </div>
-          <h1 style={{ fontFamily: 'var(--font-mono)', fontSize: '1.5rem', letterSpacing: '0.04em', color: 'var(--ink)', marginBottom: '4px' }}>
-            FundsRoom
-          </h1>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', letterSpacing: '0.12em', color: 'var(--ink-muted)', textTransform: 'uppercase' }}>
-            Operations Portal
-          </p>
+
+          {/* Central Hero Artwork & High-Craft Content */}
+          <div className="login-hero-content">
+            <HeroVaultArtwork />
+
+            <h1 className="login-hero-headline">
+              Precision Stock &amp; <br />
+              <span className="login-hero-serif">Financial Control</span>
+            </h1>
+
+            <p className="login-hero-subhead">
+              Enterprise Logistics &amp; Operations Portal for internal stock audit, dispatch authorization, and real-time inventory management.
+            </p>
+          </div>
+
+          {/* Abstract System Status Footer */}
+          <div style={{ position: 'relative', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 'var(--sp3)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
+              FundsRoom Enterprise v1.0
+            </span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#E2D9C8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="login-hero-badge-pulse" style={{ width: 6, height: 6 }} />
+              System Status: Active
+            </span>
+          </div>
         </div>
 
-        {/* Login card */}
-        <div className="card" style={{ padding: 'var(--sp4)', animation: 'loginEnter 400ms cubic-bezier(0.16,1,0.3,1) both', animationDelay: '60ms' }}>
-          <h2 style={{ fontSize: '1.0625rem', marginBottom: 'var(--sp1)', color: 'var(--ink)' }}>Sign in</h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--ink-muted)', marginBottom: 'var(--sp3)' }}>
-            Enter your credentials to access your workspace.
-          </p>
-
-          {error && (
-            <div className="alert alert-error" style={{ marginBottom: 'var(--sp2)' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} id="login-form">
-            <div className="form-group">
-              <label className="form-label" htmlFor="email">Email address</label>
-              <input
-                id="email"
-                type="email"
-                className="form-input"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@fundsroom.com"
-                autoComplete="email"
-                required
-                disabled={isLoading}
-              />
+        {/* ───────────────────────────────────────────────────────────────────
+            RIGHT SIGN-IN FORM PANEL (Parchment Tone #EDE7DA)
+        ─────────────────────────────────────────────────────────────────── */}
+        <div className="login-form-panel">
+          <div className="login-form-box">
+            
+            {/* Mobile-Only Logo Header (Hidden on Desktop to prevent duplicate logos) */}
+            <div className="login-mobile-brand">
+              <div className="login-brand-icon">
+                <LogoMark size={24} color="#FFFFFF" />
+              </div>
+              <div>
+                <h1 className="login-brand-title">FUNDSROOM</h1>
+                <p className="login-brand-subtitle">Operations Portal</p>
+              </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: 'var(--sp3)' }}>
-              <label className="form-label" htmlFor="password">Password</label>
-              <input
-                id="password"
-                type="password"
-                className="form-input"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                required
-                disabled={isLoading}
-              />
-            </div>
+            {/* Login Card */}
+            <div className="login-card">
+              <h2 className="login-title">Sign in to Portal</h2>
+              <p className="login-subtitle">Enter your corporate credentials to continue.</p>
 
-            <button
-              type="submit"
-              id="login-submit"
-              className="btn btn-primary"
-              style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} />
-                  Signing in…
-                </>
-              ) : (
-                'Sign in'
+              {error && (
+                <div className="alert alert-error login-error-shake" style={{ marginBottom: 'var(--sp3)' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  {error}
+                </div>
               )}
-            </button>
-          </form>
+
+              <form onSubmit={handleSubmit} id="login-form">
+                <div className="login-input-group">
+                  <label htmlFor="email">Work Email</label>
+                  <div className="login-input-wrapper">
+                    <input
+                      id="email"
+                      type="email"
+                      className="login-input-field"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="admin@fundsroom.com"
+                      autoComplete="email"
+                      required
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="login-input-group" style={{ marginBottom: 'var(--sp4)' }}>
+                  <label htmlFor="password">Password</label>
+                  <div className="login-input-wrapper">
+                    <input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="login-input-field"
+                      style={{ paddingRight: '44px' }}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      required
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      className="login-password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                      tabIndex={-1}
+                    >
+                      {showPassword ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  id="login-submit"
+                  className="login-submit-btn"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderColor: 'rgba(255,255,255,0.4)', borderTopColor: '#FFFFFF' }} />
+                      Authenticating…
+                    </>
+                  ) : (
+                    <>
+                      <span>Sign in to Workspace</span>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                      </svg>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+          </div>
         </div>
 
-        {/* Demo credentials */}
-        <div style={{
-          marginTop: 'var(--sp3)',
-          padding: 'var(--sp2) var(--sp3)',
-          background: 'rgba(255,255,255,0.65)',
-          backdropFilter: 'blur(4px)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)',
-          animation: 'loginEnter 400ms cubic-bezier(0.16,1,0.3,1) both',
-          animationDelay: '120ms',
-        }}>
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', letterSpacing: '0.08em', color: 'var(--ink-muted)', textTransform: 'uppercase', marginBottom: 'var(--sp1)' }}>
-            Demo credentials
-          </p>
-          {[
-            { role: 'admin', email: 'admin@fundsroom.com' },
-            { role: 'sales', email: 'sales@fundsroom.com' },
-            { role: 'warehouse', email: 'warehouse@fundsroom.com' },
-            { role: 'accounts', email: 'accounts@fundsroom.com' },
-          ].map((cred) => (
-            <button
-              key={cred.role}
-              type="button"
-              className="cred-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                width: '100%',
-                padding: '7px var(--sp1)',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                borderRadius: 'var(--radius-sm)',
-                transition: 'background var(--transition)',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ledger-dim)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-              onClick={() => {
-                setEmail(cred.email);
-                setPassword('password123');
-              }}
-            >
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--ledger)' }}>
-                {cred.email}
-              </span>
-              <span style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '0.6875rem',
-                padding: '2px 8px',
-                background: 'var(--ledger-dim)',
-                color: 'var(--ledger)',
-                borderRadius: '999px',
-                textTransform: 'capitalize',
-                border: '1px solid rgba(31,77,61,0.15)'
-              }}>
-                {cred.role}
-              </span>
-            </button>
-          ))}
-          <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', color: 'var(--ink-faint)', marginTop: 'var(--sp1)' }}>
-            All passwords: password123
-          </p>
-        </div>
       </div>
     </div>
   );

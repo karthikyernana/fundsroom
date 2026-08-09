@@ -68,6 +68,10 @@ export default function CustomerForm() {
     if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
       errs.email = 'Invalid email format';
     }
+    // FIX BUG-06: validate GST client-side to match server Zod schema
+    if (values.gst_number && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(values.gst_number)) {
+      errs.gst_number = 'Invalid GST number format (e.g. 27AABCP1234A1Z5)';
+    }
     const todayStr = new Date().toISOString().split('T')[0];
     if (values.follow_up_date && values.follow_up_date < todayStr) {
       errs.follow_up_date = 'Follow-up date cannot be in the past';

@@ -71,7 +71,7 @@ export default function ChallanForm() {
     }
     const val = parseInt(rawVal, 10);
     if (isNaN(val)) return;
-    setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: Math.max(0, val) } : i));
+    setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: Math.max(1, val) } : i));
   };
 
   const handleQtyBlur = (productId: string, currentVal: number) => {

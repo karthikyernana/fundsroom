@@ -213,3 +213,32 @@ Running log of build decisions, per §9 of the PRD. This is the direct source fo
 
 **4. B2B Tax Invoice PDF Export:**
 - Provided printable PDF export on `ChallanDetail.tsx` formatted as a B2B Tax Invoice & Delivery Challan with company header, consignee details, and itemized subtotal calculations.
+
+---
+
+## Phase 7 — Line-by-Line Code Audit, 54-Test Integration Suite & Single-Logo Brand Redesign
+**Date:** 2026-08-09
+
+### What was built & audited
+- **Line-by-Line Codebase Audit:** Completed line-by-line code audit across all backend services, routes, middleware, and frontend components against PRD specifications (`prd.md` & `FundsRoom Case Study.md`). Verified all 23 PRD requirements pass.
+- **Comprehensive Integration Test Suite:** Created a 54-test Jest + Supertest integration suite in `backend/src/__tests__/api.test.ts` covering:
+  - Auth (login, roles, token validation, `/auth/me`).
+  - Customers (CRUD, search, pagination, follow-up timeline, and Zod validation edge cases including GST format, mobile, email, follow-up date).
+  - Products (CRUD, manual stock IN/OUT, exact zero stock boundary, non-negative constraint, low stock filtering).
+  - Challans (full draft → confirm → cancel state machine, product snapshot pricing, stock rollback on 409, and concurrent double-confirm race protection).
+- **Core Bug Fixes Applied:**
+  - **CORS Config Security:** Updated `index.ts` to respect `CORS_ORIGIN` env var in production while allowing local dev origins.
+  - **Prisma Error Handling:** Added `P2002` (unique constraint) → 409 CONFLICT and `P2025` → 404 NOT_FOUND mapping in `errorHandler.ts`.
+  - **Stale Token Check:** Added `/auth/me` verification on `AuthContext` mount to clear expired/rotated tokens automatically.
+  - **Client-Side GST Validation:** Added GST regex match in `CustomerForm.validate()` matching backend Zod schema (`/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/`).
+  - **Challan Quantity Bounds:** Enforced minimum quantity 1 in `ChallanForm.tsx` to prevent accidental 0-quantity submissions.
+  - **401 Interceptor Loop Fix:** Updated `api.ts` response interceptor to bypass hard page reloads when the request originates from `/auth/login` or when already on `/login`, allowing `Login.tsx` to present inline error alerts cleanly without refreshing the window.
+- **Enterprise Portal Redesign (Single Logo & High-Craft Animations):**
+  - **Single Authoritative Logo:** Removed duplicate logo headers on desktop split view. Left green hero panel serves as the single authoritative FundsRoom logo (`LogoMark`), while `.login-mobile-brand` renders conditionally on mobile view `<899px`.
+  - **Architectural Artwork & Motion:** Added central concentric architectural SVG vault emblem (`<HeroVaultArtwork />`) with continuous rotation (`@keyframes spinSlow`), ambient glowing mesh lighting, and staggered entrance keyframes.
+  - **Password Eye Icon Centering:** Wrapped password input in `.login-input-wrapper` and vertically centered eye button using `top: 50%; transform: translateY(-50%)`.
+
+### Key decisions & results
+- **54/54 Integration Tests Passed:** Verified that `$executeRaw` atomic stock decrements prevent negative stock levels even under concurrent request races.
+- **Zero Build Errors:** Verified Vite frontend production build (`npm run build`) and TypeScript backend compilation (`tsc`).
+

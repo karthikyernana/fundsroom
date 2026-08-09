@@ -12,11 +12,19 @@ const app = express();
 const PORT = process.env.PORT ?? 3001;
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
+const allowedOrigin = process.env.CORS_ORIGIN;
 app.use(cors({
   origin: (origin, callback) => {
-    // Reflect back requesting origin (e.g. http://localhost:5174, http://localhost:5173) for credentials support
-    if (!origin) return callback(null, '*');
-    return callback(null, origin);
+    // In production, only allow the configured CORS_ORIGIN
+    // In development (no CORS_ORIGIN set), reflect the requesting origin
+    if (!origin) return callback(null, true);
+    if (!allowedOrigin || process.env.NODE_ENV !== 'production') {
+      return callback(null, true); // dev: allow all
+    }
+    if (origin === allowedOrigin) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS: Origin ${origin} not allowed`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -48,11 +56,13 @@ app.use((_req, res) => {
 // ─── Centralized error handler ───────────────────────────────────────────────
 app.use(errorHandler);
 
-// ─── Start ───────────────────────────────────────────────────────────────────
-const portNum = Number(PORT);
-app.listen(portNum, '0.0.0.0', () => {
-  console.log(`🚀 FundsRoom API running on http://localhost:${portNum}`);
-  console.log(`   Environment: ${process.env.NODE_ENV ?? 'development'}`);
-});
+// ─── Start — only when run directly, not when imported by tests ──────────────
+if (require.main === module) {
+  const portNum = Number(PORT);
+  app.listen(portNum, '0.0.0.0', () => {
+    console.log(`🚀 FundsRoom API running on http://localhost:${portNum}`);
+    console.log(`   Environment: ${process.env.NODE_ENV ?? 'development'}`);
+  });
+}
 
 export default app;

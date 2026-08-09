@@ -91,7 +91,16 @@ npx prisma migrate dev --name init
 npm run db:seed
 ```
 
-### 4. Run Development Servers
+### 4. Run Automated Integration Test Suite
+
+```bash
+cd backend
+
+# Execute 54-test integration suite against PostgreSQL
+npm test
+```
+
+### 5. Run Development Servers
 
 ```bash
 # Terminal 1 — Backend API
