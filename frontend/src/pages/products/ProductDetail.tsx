@@ -62,7 +62,9 @@ export default function ProductDetail() {
     <div className="main-content">
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp2)' }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/products')}>←</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/products')} aria-label="Back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
           <div>
             <h1 className="page-title">{product.name}</h1>
             <p className="page-subtitle mono">{product.sku}</p>
@@ -105,7 +107,7 @@ export default function ProductDetail() {
         <div className="card" style={{ borderColor: isLow ? 'var(--brick)' : undefined }}>
           <div className="card-header">
             <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Current Stock</h3>
-            {isLow && <span className="badge badge-cancelled" style={{ background: 'var(--brick-light)', color: 'var(--brick)' }}>⚠ LOW</span>}
+            {isLow && <span className="badge badge-cancelled" style={{ background: 'var(--brick-light)', color: 'var(--brick)' }}>LOW STOCK</span>}
           </div>
           <div style={{ textAlign: 'center', padding: 'var(--sp4) 0' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: '4rem', fontWeight: 700, color: isLow ? 'var(--brick)' : 'var(--ledger)', lineHeight: 1 }}>
@@ -129,7 +131,7 @@ export default function ProductDetail() {
         {movLoading ? (
           <div className="state-container"><Spinner /></div>
         ) : !movData?.movements.length ? (
-          <EmptyState icon="📊" title="No movements recorded" message="Stock adjustments and challan dispatches will appear here." />
+          <EmptyState title="No movements recorded" message="Stock adjustments and challan dispatches will appear here." />
         ) : (
           <table className="table">
             <thead>
@@ -188,7 +190,7 @@ export default function ProductDetail() {
                     borderColor: movType === t ? (t === 'IN' ? 'var(--olive)' : 'var(--brick)') : undefined,
                   }}
                   onClick={() => setMovType(t)}>
-                  {t === 'IN' ? '↑ IN' : '↓ OUT'}
+                  {t === 'IN' ? '+ IN' : '− OUT'}
                 </button>
               ))}
             </div>

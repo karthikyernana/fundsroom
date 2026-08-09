@@ -14,10 +14,12 @@ function useFormState<T extends Record<string, unknown>>(initial: T) {
   return { values, errors, set, setErrors };
 }
 
+import { useSalesReps } from '../../hooks/useSalesReps';
+
 const EMPTY: Record<string, string> = {
   name: '', mobile: '', email: '', business_name: '',
   gst_number: '', customer_type: 'wholesale', address: '',
-  status: 'lead', follow_up_date: '', notes: '',
+  status: 'lead', follow_up_date: '', notes: '', assigned_to: '',
 };
 
 import { useToast } from '../../components/ui/Toast';
@@ -29,6 +31,7 @@ export default function CustomerForm() {
   const { showToast } = useToast();
 
   const { data: existing, isLoading, isError } = useCustomer(id ?? '');
+  const { data: salesReps } = useSalesReps();
   const create = useCreateCustomer();
   const update = useUpdateCustomer(id ?? '');
 
@@ -39,7 +42,10 @@ export default function CustomerForm() {
   useEffect(() => {
     if (isEdit && existing) {
       Object.entries(EMPTY).forEach(([key]) => {
-        const val = (existing as unknown as Record<string, unknown>)[key];
+        let val = (existing as unknown as Record<string, unknown>)[key];
+        if (key === 'assigned_to') {
+          val = existing.assigned_to || existing.assigned_salesperson?.id || '';
+        }
 
         if (val !== undefined && val !== null) {
           let strVal = String(val);
@@ -86,6 +92,7 @@ export default function CustomerForm() {
       status: values.status as 'lead' | 'active' | 'inactive',
       follow_up_date: values.follow_up_date ? new Date(values.follow_up_date).toISOString() : undefined,
       notes: values.notes || undefined,
+      assigned_to: values.assigned_to || undefined,
     };
 
     try {
@@ -127,8 +134,8 @@ export default function CustomerForm() {
     <div className="main-content">
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp2)' }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate(isEdit ? `/customers/${id}` : '/customers')}>
-            ←
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate(isEdit ? `/customers/${id}` : '/customers')} aria-label="Back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </button>
           <h1 className="page-title">{isEdit ? 'Edit Customer' : 'New Customer'}</h1>
         </div>
@@ -200,6 +207,19 @@ export default function CustomerForm() {
                 min={new Date().toISOString().split('T')[0]}
                 value={values.follow_up_date} onChange={(e) => set('follow_up_date', e.target.value)} />
               {errors.follow_up_date && <div className="form-error">{errors.follow_up_date}</div>}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label" htmlFor="c-assigned">Assigned Salesperson</label>
+              <select id="c-assigned" className="form-select"
+                value={values.assigned_to} onChange={(e) => set('assigned_to', e.target.value)}>
+                <option value="">-- Unassigned --</option>
+                {salesReps?.map((rep) => (
+                  <option key={rep.id} value={rep.id}>
+                    {rep.name} ({rep.email})
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

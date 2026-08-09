@@ -36,6 +36,15 @@ async function main() {
     },
   });
 
+  const sales2 = await prisma.users.create({
+    data: {
+      name: 'Ananya Sharma (Sales Rep)',
+      email: 'sales2@fundsroom.com',
+      password_hash: passwordHash,
+      role: 'sales',
+    },
+  });
+
   const warehouse = await prisma.users.create({
     data: {
       name: 'Warehouse User',
@@ -68,6 +77,7 @@ async function main() {
       address: '45 Market Road, Pune, Maharashtra 411001',
       status: 'active',
       follow_up_date: new Date('2026-08-15'),
+      assigned_to: sales.id,
     },
   });
 
@@ -81,6 +91,7 @@ async function main() {
       customer_type: 'distributor',
       address: '12 Industrial Area, Delhi 110020',
       status: 'active',
+      assigned_to: sales.id,
     },
   });
 
@@ -93,6 +104,7 @@ async function main() {
       address: '78 Gandhi Nagar, Bangalore 560032',
       status: 'lead',
       follow_up_date: new Date('2026-08-20'),
+      assigned_to: sales2.id,
     },
   });
 
@@ -106,6 +118,7 @@ async function main() {
       customer_type: 'distributor',
       address: '33 Nehru Place, Delhi 110019',
       status: 'inactive',
+      assigned_to: sales2.id,
     },
   });
 
@@ -118,6 +131,7 @@ async function main() {
       customer_type: 'wholesale',
       address: '5 Ring Road, Jaipur, Rajasthan 302001',
       status: 'active',
+      assigned_to: sales.id,
     },
   });
 

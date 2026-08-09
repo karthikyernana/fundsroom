@@ -92,7 +92,6 @@ export default function ProductList() {
           <ErrorState onRetry={() => refetch()} />
         ) : !data?.data.length ? (
           <EmptyState
-            icon="📦"
             title={search || lowStock ? 'No products match' : 'No products yet'}
             message={canWrite ? 'Add your first product to start tracking inventory.' : undefined}
             action={canWrite ? (
@@ -101,7 +100,7 @@ export default function ProductList() {
           />
         ) : (
           <>
-            <table className="table">
+            <table className="table table-clickable">
               <thead>
                 <tr>
                   <th>Product</th>

@@ -21,6 +21,7 @@ export const createCustomerSchema = z.object({
     .optional()
     .or(z.literal('')),
   notes: z.string().max(1000).optional(),
+  assigned_to: z.string().optional().nullable().or(z.literal('')),
 });
 
 export const updateCustomerSchema = createCustomerSchema.partial();
@@ -32,6 +33,8 @@ export const addNoteSchema = z.object({
 export const customerQuerySchema = z.object({
   search: z.string().optional(),
   status: z.enum(['lead', 'active', 'inactive']).optional(),
+  assigned_to: z.string().optional(),
+  my_customers: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

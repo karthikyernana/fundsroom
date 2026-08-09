@@ -18,9 +18,9 @@ Internal operations tool for a wholesale distribution business. Covers Customer 
 
 | Role | Email | Password | Allowed Access |
 |---|---|---|---|
-| **Admin** | `admin@fundsroom.com` | `password123` | Full access across all modules |
-| **Sales** | `sales@fundsroom.com` | `password123` | Customer CRUD, Read products, Create/Confirm/Edit draft challans |
-| **Warehouse** | `warehouse@fundsroom.com` | `password123` | Product & Stock CRUD, Read customers, Create/Confirm/Cancel challans |
+| **Admin** | `admin@fundsroom.com` | `password123` | Full access across all modules. Can create/manage users. |
+| **Sales** | `sales@fundsroom.com` | `password123` | Customer CRUD, Read products (for challan stock checks), Create/Confirm/Edit draft challans |
+| **Warehouse** | `warehouse@fundsroom.com` | `password123` | Product & Stock CRUD, Read customers (for challan dispatch context), Create/Confirm/Cancel challans |
 | **Accounts** | `accounts@fundsroom.com` | `password123` | Read-only across all modules |
 
 ---
@@ -141,10 +141,13 @@ Base URL: `http://localhost:3001`
 |---|---|---|---|---|
 | `POST` | `/auth/login` | No | All | Authenticate and obtain JWT token |
 | `GET` | `/auth/me` | Yes | All | Get current authenticated user details |
-| `GET` | `/customers` | Yes | All | List customers (supports `search`, `status`, `page`, `limit`) |
-| `POST` | `/customers` | Yes | Admin, Sales | Create customer record |
-| `GET` | `/customers/:id` | Yes | All | Get customer details with follow-up notes timeline |
-| `PUT` | `/customers/:id` | Yes | Admin, Sales | Update customer profile |
+| `GET` | `/auth/sales-reps` | Yes | All | List sales representative accounts for customer lead assignment |
+| `GET` | `/auth/users` | Yes | Admin | List all system users |
+| `POST` | `/auth/register` | Yes | Admin | Create a new user (name, email, password, role) |
+| `GET` | `/customers` | Yes | All | List customers (supports `search`, `status`, `assigned_to`, `my_customers`, `page`, `limit`) |
+| `POST` | `/customers` | Yes | Admin, Sales | Create customer record with optional `assigned_to` sales rep |
+| `GET` | `/customers/:id` | Yes | All | Get customer details with assigned rep & follow-up notes timeline |
+| `PUT` | `/customers/:id` | Yes | Admin, Sales | Update customer profile and assigned sales representative |
 | `POST` | `/customers/:id/notes` | Yes | Admin, Sales | Add a follow-up note to customer timeline |
 | `GET` | `/products` | Yes | All | List products (supports `search`, `category`, `low_stock`, `page`, `limit`) |
 | `POST` | `/products` | Yes | Admin, Warehouse | Create product |

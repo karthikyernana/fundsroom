@@ -118,7 +118,9 @@ export default function ProductForm() {
     <div className="main-content">
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp2)' }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate(isEdit ? `/products/${id}` : '/products')}>←</button>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate(isEdit ? `/products/${id}` : '/products')} aria-label="Back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
           <h1 className="page-title">{isEdit ? 'Edit Product' : 'New Product'}</h1>
         </div>
       </div>

@@ -10,12 +10,18 @@ import type {
 
 // ─── List ─────────────────────────────────────────────────────────────────────
 
-export async function listCustomers(query: CustomerQuery) {
-  const { search, status, page = 1, limit = 20 } = query;
+export async function listCustomers(query: CustomerQuery, currentUserId?: string) {
+  const { search, status, assigned_to, my_customers, page = 1, limit = 20 } = query;
   const skip = (page - 1) * limit;
 
   const where: Prisma.customersWhereInput = {};
   if (status) where.status = status;
+  if (my_customers && currentUserId) {
+    where.assigned_to = currentUserId;
+  } else if (assigned_to) {
+    where.assigned_to = assigned_to;
+  }
+
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
@@ -41,6 +47,8 @@ export async function listCustomers(query: CustomerQuery) {
         customer_type: true,
         status: true,
         follow_up_date: true,
+        assigned_to: true,
+        assigned_salesperson: { select: { id: true, name: true, email: true } },
         created_at: true,
         updated_at: true,
         _count: { select: { customer_notes: true, challans: true } },
@@ -61,6 +69,7 @@ export async function getCustomer(id: string) {
   const customer = await prisma.customers.findUnique({
     where: { id },
     include: {
+      assigned_salesperson: { select: { id: true, name: true, email: true } },
       customer_notes: {
         orderBy: { created_at: 'desc' },
         include: { user: { select: { id: true, name: true, role: true } } },
@@ -88,9 +97,13 @@ export async function createCustomer(data: CreateCustomerInput) {
     status: data.status ?? 'lead',
     follow_up_date: data.follow_up_date ? new Date(data.follow_up_date) : undefined,
     notes: data.notes || undefined,
+    assigned_salesperson: data.assigned_to ? { connect: { id: data.assigned_to } } : undefined,
   };
 
-  return prisma.customers.create({ data: createData });
+  return prisma.customers.create({
+    data: createData,
+    include: { assigned_salesperson: { select: { id: true, name: true, email: true } } },
+  });
 }
 
 // ─── Update ───────────────────────────────────────────────────────────────────
@@ -112,8 +125,15 @@ export async function updateCustomer(id: string, data: UpdateCustomerInput) {
     updateData.follow_up_date = data.follow_up_date ? new Date(data.follow_up_date) : null;
   }
   if (data.notes !== undefined) updateData.notes = data.notes || null;
+  if (data.assigned_to !== undefined) {
+    updateData.assigned_salesperson = data.assigned_to ? { connect: { id: data.assigned_to } } : { disconnect: true };
+  }
 
-  return prisma.customers.update({ where: { id }, data: updateData });
+  return prisma.customers.update({
+    where: { id },
+    data: updateData,
+    include: { assigned_salesperson: { select: { id: true, name: true, email: true } } },
+  });
 }
 
 // ─── Add note ─────────────────────────────────────────────────────────────────

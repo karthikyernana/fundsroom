@@ -34,9 +34,12 @@ export default function ChallanForm() {
   const { data: customersData } = useCustomers({ search: customerSearch || undefined, limit: 50 });
   const { data: productsData } = useProducts({ search: productSearch || undefined, limit: 50 });
 
+  const initializedRef = React.useRef(false);
+
   // Populate for edit
   React.useEffect(() => {
-    if (isEdit && existing && !customerId) {
+    if (isEdit && existing && !initializedRef.current) {
+      initializedRef.current = true;
       setCustomerId(existing.customer_id);
       if (existing.challan_items) {
         setItems(existing.challan_items.map((ci) => ({
@@ -49,7 +52,7 @@ export default function ChallanForm() {
         })));
       }
     }
-  }, [existing, isEdit, customerId]);
+  }, [existing, isEdit]);
 
   const addProduct = (p: { id: string; name: string; sku: string; unit_price: number; current_stock: number }) => {
     const exists = items.find((i) => i.product_id === p.id);
@@ -61,12 +64,24 @@ export default function ChallanForm() {
     setProductSearch('');
   };
 
-  const setQty = (productId: string, qty: number) => {
-    if (qty <= 0) {
-      setItems((prev) => prev.filter((i) => i.product_id !== productId));
-    } else {
-      setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: qty } : i));
+  const handleQtyChange = (productId: string, rawVal: string) => {
+    if (rawVal === '') {
+      setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: '' as unknown as number } : i));
+      return;
     }
+    const val = parseInt(rawVal, 10);
+    if (isNaN(val)) return;
+    setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: Math.max(0, val) } : i));
+  };
+
+  const handleQtyBlur = (productId: string, currentVal: number) => {
+    if (!currentVal || currentVal <= 0) {
+      setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: 1 } : i));
+    }
+  };
+
+  const removeItem = (productId: string) => {
+    setItems((prev) => prev.filter((i) => i.product_id !== productId));
   };
 
   const { showToast } = useToast();
@@ -111,7 +126,9 @@ export default function ChallanForm() {
     <div className="main-content">
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp2)' }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate(isEdit ? `/challans/${id}` : '/challans')}>←</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate(isEdit ? `/challans/${id}` : '/challans')} aria-label="Back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
           <h1 className="page-title">{isEdit ? 'Edit Challan' : 'New Challan'}</h1>
         </div>
       </div>
@@ -124,7 +141,7 @@ export default function ChallanForm() {
           <div className="card">
             <div className="card-header">
               <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Customer *</h3>
-              {selectedCustomer && <span style={{ fontSize: '0.875rem', color: 'var(--olive)', fontWeight: 500 }}>✓ Selected</span>}
+              {selectedCustomer && <span style={{ fontSize: '0.875rem', color: 'var(--olive)', fontWeight: 600 }}>Selected</span>}
             </div>
             {errors.customer && <div className="alert alert-error" style={{ marginBottom: 'var(--sp2)' }}>{errors.customer}</div>}
             {selectedCustomer ? (
@@ -207,7 +224,7 @@ export default function ChallanForm() {
                     <div style={{ textAlign: 'right' }}>
                       <div className="mono" style={{ fontWeight: 600, color: 'var(--ledger)' }}>₹{Number(p.unit_price).toLocaleString('en-IN')}</div>
                       <div className="mono" style={{ fontSize: '0.75rem', color: isLow ? 'var(--brick)' : 'var(--ink-muted)', fontWeight: isLow ? 600 : 400 }}>
-                        {p.current_stock} in stock{isLow ? ' ⚠' : ''}
+                        {p.current_stock} in stock{isLow ? ' (Low)' : ''}
                       </div>
                     </div>
                     <div style={{ marginLeft: 12 }}>
@@ -225,7 +242,7 @@ export default function ChallanForm() {
 
           {/* Line items table */}
           {items.length === 0 ? (
-            <EmptyState icon="🛒" title="No items added" message="Search for products above to add them to the challan." />
+            <EmptyState title="No items added" message="Search for products above to add them to the challan." />
           ) : (
             <table className="table">
               <thead>
@@ -247,7 +264,10 @@ export default function ChallanForm() {
                       <td>
                         <div style={{ fontWeight: 500 }}>{item.name}</div>
                         {overstock && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--brick)' }}>⚠ Exceeds available stock</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--brick)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/></svg>
+                            Exceeds available stock
+                          </div>
                         )}
                       </td>
                       <td className="mono">{item.sku}</td>
@@ -257,21 +277,27 @@ export default function ChallanForm() {
                       <td className="mono">₹{item.unit_price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                       <td>
                         <input
-                          type="number" min={1} max={item.current_stock}
+                          type="number"
+                          min={1}
                           className="form-input mono"
                           style={{ width: 80, padding: '6px 8px' }}
-                          value={item.quantity}
-                          onChange={(e) => setQty(item.product_id, parseInt(e.target.value) || 0)}
+                          value={item.quantity === ('' as unknown as number) ? '' : item.quantity}
+                          onChange={(e) => handleQtyChange(item.product_id, e.target.value)}
+                          onBlur={() => handleQtyBlur(item.product_id, item.quantity)}
                         />
                       </td>
                       <td className="mono" style={{ fontWeight: 600 }}>
-                        ₹{(item.unit_price * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹{((item.unit_price || 0) * (item.quantity || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </td>
                       <td>
-                        <button type="button" className="btn btn-ghost btn-sm"
-                          style={{ color: 'var(--brick)' }}
-                          onClick={() => setItems((prev) => prev.filter((i) => i.product_id !== item.product_id))}>
-                          ×
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          style={{ color: 'var(--brick)', padding: '4px 8px' }}
+                          onClick={() => removeItem(item.product_id)}
+                          title="Remove item"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>
                       </td>
                     </tr>

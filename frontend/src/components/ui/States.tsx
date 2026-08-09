@@ -12,18 +12,40 @@ export function Spinner({ size = 'default' }: { size?: 'default' | 'lg' | 'sm' }
   );
 }
 
+// ─── SVG Icons for states ──────────────────────────────────────────────────────
+const EmptyIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <line x1="8" y1="12" x2="16" y2="12" opacity="0.5"/>
+  </svg>
+);
+
+const ErrorIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="9"/>
+    <line x1="12" y1="8" x2="12" y2="12"/>
+    <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2"/>
+  </svg>
+);
+
 // ─── Empty State ──────────────────────────────────────────────────────────────
 interface EmptyStateProps {
-  icon?: string;
+  icon?: string | React.ReactNode;  // kept for backward compat (emoji or ReactNode)
   title: string;
   message?: string;
   action?: React.ReactNode;
 }
 
-export function EmptyState({ icon = '📋', title, message, action }: EmptyStateProps) {
+export function EmptyState({ icon, title, message, action }: EmptyStateProps) {
   return (
     <div className="state-container">
-      <div className="state-icon">{icon}</div>
+      <div className="state-icon">
+        {icon && typeof icon === 'string' && icon !== ''
+          ? <span style={{ fontSize: '1.5rem' }}>{icon}</span>
+          : icon && typeof icon !== 'string'
+          ? icon
+          : <EmptyIcon />}
+      </div>
       <div className="state-title">{title}</div>
       {message && <div className="state-message">{message}</div>}
       {action}
@@ -40,7 +62,9 @@ interface ErrorStateProps {
 export function ErrorState({ message = 'Something went wrong', onRetry }: ErrorStateProps) {
   return (
     <div className="state-container">
-      <div className="state-icon">⚠️</div>
+      <div className="state-icon" style={{ background: 'var(--brick-light)', color: 'var(--brick)' }}>
+        <ErrorIcon />
+      </div>
       <div className="state-title">Failed to load</div>
       <div className="state-message">{message}</div>
       {onRetry && (

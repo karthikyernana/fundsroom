@@ -29,11 +29,20 @@ export default function Login() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--paper)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--sp3)' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--paper)',
+      backgroundImage: 'radial-gradient(var(--border) 1px, transparent 1px)',
+      backgroundSize: '24px 24px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 'var(--sp3)'
+    }}>
       <div style={{ width: '100%', maxWidth: '440px' }}>
 
         {/* Logo / heading */}
-        <div style={{ textAlign: 'center', marginBottom: 'var(--sp5)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 'var(--sp5)', animation: 'loginEnter 400ms cubic-bezier(0.16,1,0.3,1) both', animationDelay: '0ms' }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -43,7 +52,7 @@ export default function Login() {
             background: 'var(--ledger)',
             borderRadius: 'var(--radius-lg)',
             marginBottom: 'var(--sp2)',
-            boxShadow: 'var(--shadow)'
+            boxShadow: '0 4px 16px rgba(31,77,61,0.3)'
           }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
@@ -59,7 +68,7 @@ export default function Login() {
         </div>
 
         {/* Login card */}
-        <div className="card" style={{ padding: 'var(--sp4)' }}>
+        <div className="card" style={{ padding: 'var(--sp4)', animation: 'loginEnter 400ms cubic-bezier(0.16,1,0.3,1) both', animationDelay: '60ms' }}>
           <h2 style={{ fontSize: '1.0625rem', marginBottom: 'var(--sp1)', color: 'var(--ink)' }}>Sign in</h2>
           <p style={{ fontSize: '0.875rem', color: 'var(--ink-muted)', marginBottom: 'var(--sp3)' }}>
             Enter your credentials to access your workspace.
@@ -126,9 +135,12 @@ export default function Login() {
         <div style={{
           marginTop: 'var(--sp3)',
           padding: 'var(--sp2) var(--sp3)',
-          background: 'rgba(255,255,255,0.6)',
+          background: 'rgba(255,255,255,0.65)',
+          backdropFilter: 'blur(4px)',
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-lg)',
+          animation: 'loginEnter 400ms cubic-bezier(0.16,1,0.3,1) both',
+          animationDelay: '120ms',
         }}>
           <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.6875rem', letterSpacing: '0.08em', color: 'var(--ink-muted)', textTransform: 'uppercase', marginBottom: 'var(--sp1)' }}>
             Demo credentials
@@ -142,19 +154,20 @@ export default function Login() {
             <button
               key={cred.role}
               type="button"
+              className="cred-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 width: '100%',
-                padding: '6px var(--sp1)',
+                padding: '7px var(--sp1)',
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
                 borderRadius: 'var(--radius-sm)',
                 transition: 'background var(--transition)',
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--paper-dark)')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ledger-dim)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
               onClick={() => {
                 setEmail(cred.email);
@@ -171,7 +184,8 @@ export default function Login() {
                 background: 'var(--ledger-dim)',
                 color: 'var(--ledger)',
                 borderRadius: '999px',
-                textTransform: 'capitalize'
+                textTransform: 'capitalize',
+                border: '1px solid rgba(31,77,61,0.15)'
               }}>
                 {cred.role}
               </span>

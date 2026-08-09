@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCustomers } from '../../hooks/useCustomers';
+import { useSalesReps } from '../../hooks/useSalesReps';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spinner, EmptyState, ErrorState } from '../../components/ui/States';
 import { Badge } from '../../components/ui/Badge';
@@ -9,16 +10,25 @@ import { Pagination } from '../../components/ui/Pagination';
 export default function CustomerList() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Only admin and sales can write — warehouse and accounts see read-only
   const canWrite = user?.role === 'admin' || user?.role === 'sales';
 
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [assignedTo, setAssignedTo] = useState('');
+  const [myCustomers, setMyCustomers] = useState(searchParams.get('my_customers') === 'true');
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
+
+  const { data: salesReps } = useSalesReps();
 
   const { data, isLoading, isError, error, refetch } = useCustomers({
     search: search || undefined,
     status: status || undefined,
+    assigned_to: assignedTo || undefined,
+    my_customers: myCustomers || undefined,
     page,
     limit: 20,
   });
@@ -29,13 +39,23 @@ export default function CustomerList() {
     setPage(1);
   };
 
+  const handleMyCustomersToggle = (val: boolean) => {
+    setMyCustomers(val);
+    setPage(1);
+    if (val) {
+      setSearchParams({ my_customers: 'true' });
+    } else {
+      setSearchParams({});
+    }
+  };
+
   return (
     <div className="main-content">
       <div className="page-header">
         <div>
           <h1 className="page-title">Customers</h1>
           <p className="page-subtitle">
-            {data?.meta.total ?? 0} total customers
+            {data?.meta.total ?? 0} total customer accounts
           </p>
         </div>
         {canWrite && (
@@ -50,9 +70,29 @@ export default function CustomerList() {
         )}
       </div>
 
+      {/* Filter Tabs for Sales Reps */}
+      {user?.role === 'sales' && (
+        <div style={{ display: 'flex', gap: 'var(--sp1)', marginBottom: 'var(--sp2)' }}>
+          <button
+            type="button"
+            className={`btn btn-sm ${!myCustomers ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => handleMyCustomersToggle(false)}
+          >
+            All Accounts
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${myCustomers ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => handleMyCustomersToggle(true)}
+          >
+            My Assigned Accounts
+          </button>
+        </div>
+      )}
+
       {/* Toolbar */}
-      <div className="toolbar">
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, flex: 1 }}>
+      <div className="toolbar" style={{ flexWrap: 'wrap', gap: 'var(--sp2)' }}>
+        <form onSubmit={handleSearch} style={{ display: 'flex', gap: 8, flex: 1, minWidth: 260 }}>
           <div className="search-input-wrapper">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
@@ -84,6 +124,21 @@ export default function CustomerList() {
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
+
+        <select
+          id="sales-rep-filter"
+          className="form-select"
+          style={{ width: 'auto', padding: '8px 36px 8px 12px' }}
+          value={assignedTo}
+          onChange={(e) => { setAssignedTo(e.target.value); setPage(1); }}
+        >
+          <option value="">All Sales Reps</option>
+          {salesReps?.map((rep) => (
+            <option key={rep.id} value={rep.id}>
+              {rep.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Table */}
@@ -97,9 +152,9 @@ export default function CustomerList() {
           />
         ) : !data?.data.length ? (
           <EmptyState
-            icon="👥"
-            title={search ? 'No customers match your search' : 'No customers yet'}
-            message={search ? 'Try a different search term or clear the filter.' : 'Add your first customer to get started.'}
+            icon=""
+            title={search || myCustomers ? 'No matching customer accounts' : 'No customers yet'}
+            message={search || myCustomers ? 'Try clearing your search or assigned account filters.' : 'Add your first customer account to get started.'}
             action={canWrite ? (
               <button className="btn btn-primary" onClick={() => navigate('/customers/new')}>
                 Add Customer
@@ -108,13 +163,14 @@ export default function CustomerList() {
           />
         ) : (
           <>
-            <table className="table">
+            <table className="table table-clickable">
               <thead>
                 <tr>
                   <th>Name / Business</th>
                   <th>Mobile</th>
                   <th>Type</th>
                   <th>Status</th>
+                  <th>Assigned Sales Rep</th>
                   <th>Follow-up</th>
                   <th>Notes</th>
                 </tr>
@@ -123,7 +179,7 @@ export default function CustomerList() {
                 {data.data.map((c) => (
                   <tr key={c.id} onClick={() => navigate(`/customers/${c.id}`)}>
                     <td>
-                      <div style={{ fontWeight: 500 }}>{c.name}</div>
+                      <div style={{ fontWeight: 600 }}>{c.name}</div>
                       {c.business_name && (
                         <div style={{ fontSize: '0.8125rem', color: 'var(--ink-muted)' }}>{c.business_name}</div>
                       )}
@@ -131,6 +187,15 @@ export default function CustomerList() {
                     <td className="mono">{c.mobile}</td>
                     <td><Badge variant={c.customer_type}>{c.customer_type}</Badge></td>
                     <td><Badge variant={c.status}>{c.status}</Badge></td>
+                    <td>
+                      {c.assigned_salesperson ? (
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--ledger)' }}>
+                          {c.assigned_salesperson.name}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: '0.8125rem', color: 'var(--ink-faint)', fontStyle: 'italic' }}>Unassigned</span>
+                      )}
+                    </td>
                     <td className="mono" style={{ fontSize: '0.8rem', color: 'var(--ink-muted)' }}>
                       {c.follow_up_date
                         ? new Date(c.follow_up_date).toLocaleDateString('en-IN')

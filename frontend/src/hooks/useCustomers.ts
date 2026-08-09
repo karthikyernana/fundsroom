@@ -14,6 +14,8 @@ export interface Customer {
   status: 'lead' | 'active' | 'inactive';
   follow_up_date?: string;
   notes?: string;
+  assigned_to?: string | null;
+  assigned_salesperson?: { id: string; name: string; email: string } | null;
   created_at: string;
   updated_at: string;
   _count?: { customer_notes: number; challans: number };
@@ -30,6 +32,8 @@ export interface CustomerNote {
 interface CustomerListParams {
   search?: string;
   status?: string;
+  assigned_to?: string;
+  my_customers?: boolean;
   page?: number;
   limit?: number;
 }

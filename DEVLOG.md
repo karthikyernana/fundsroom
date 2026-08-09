@@ -130,4 +130,86 @@ Running log of build decisions, per §9 of the PRD. This is the direct source fo
 - **Query Preprocessor over Zod Coerce:** `z.coerce.boolean()` evaluates `Boolean("false")` to `true` in JavaScript. Preprocessing string values explicitly guarantees correct boolean conversion.
 - **Toast Notifications for User Feedback:** Replaced silent mutations with Toast popups so users receive immediate visual feedback for all key operations.
 
+---
 
+## Phase 5 — Role Corrections, Feature Additions & Professional UI Polish
+**Date:** 2026-08-09
+
+### What was built & fixed
+
+**Role-Based Access Corrections:**
+- **Warehouse** now sees Customers module in read-only mode. Warehouse users dispatch challans and need to see customer context. Backend already allowed `GET /customers` for all roles — the frontend was incorrectly hiding it.
+- **Sales** now sees Products module in read-only mode. Sales users create challans and need stock visibility when picking products. Backend already allowed `GET /products` for all roles.
+- `canWrite` guard in CustomerList/CustomerDetail correctly restricts "New Customer" / "Edit" / "Add Note" buttons to admin and sales only. Warehouse sees data but no mutation buttons.
+
+**User Management (Admin Only):**
+- Added `GET /auth/users` and `POST /auth/register` endpoints to `auth.ts` — both guarded by `requireRole('admin')`.
+- Input validated with inline Zod schema: name (required, max 100), email (valid format), password (min 8 chars), role (enum admin|sales|warehouse|accounts).
+- `409 Conflict` returned if email already exists (prevents duplicates).
+- New frontend page `UserManagement.tsx` — admin-only route `/users`, shows user list + inline create form with role description hints.
+- **Assumption documented:** Any production ERP requires admins to onboard new employees without reseeding. User creation is implicit to the Admin role. Implemented and documented per PRD §11 (assumptions must be documented).
+
+**PDF Export (Bonus Feature):**
+- Implemented `Export PDF` button on confirmed challans only (draft/cancelled challans are not exportable).
+- Uses `window.print()` + a `@media print` CSS stylesheet — zero new npm packages, fully within spec.
+- Print CSS hides sidebar, nav buttons, modals, and toasts. Shows challan detail in clean print layout.
+- `.no-print` utility class added for elements that should be hidden in print view.
+
+**Edge Case Validation (Frontend):**
+- Customer form: mobile ≥ 10 digits (existing), GST regex validation (existing), follow_up_date ≥ today (existing + Zod backend).
+- Product form: unit_price > 0 validated as positive (existing Zod), min_stock_alert ≥ 0 (existing), opening stock ≥ 0 (existing).
+- Stock movement: quantity > 0 (existing), OUT quantity ≤ current_stock (existing client-side guard).
+- Challan form: at least 1 item, no zero-quantity items, qty ≤ available stock (existing with inline warning).
+- Login: empty field prevention via `required` HTML attribute, loading state disables button to prevent double-submit.
+- Backend Zod schemas already cover all server-side validation. No gaps found requiring additional backend changes.
+
+**Professional UI Redesign:**
+- Replaced all emoji icons (📦 📋 📄 👥 ⚠️) with proper SVG icons in States.tsx, ChallanDetail.tsx, App.tsx.
+- `EmptyState` and `ErrorState` now render styled SVG icon circles instead of large emoji.
+- Mobile header (hamburger + title) hidden on desktop via CSS (`display: none` in base, `display: flex` at ≤ 600px). Previously always visible.
+- Dashboard metric cards and module tiles use CSS-only hover (`.metric-card:hover`, `.module-tile:hover`) instead of inline `onMouseEnter`/`onMouseLeave` JS handlers.
+- Dashboard greeting is time-aware: "Good morning / Good afternoon / Good evening" based on `new Date().getHours()`.
+- Login page: dot-grid background texture via `radial-gradient`, staggered entrance animations (logo → card → credentials) at 0/60/120ms delays.
+- `@keyframes loginEnter` (fade + scale), `@keyframes pageEnter` (fade + translateY), `@keyframes cardEnter` (fade + scale), `@keyframes modalSlideUp` (more polished spring).
+- Sidebar: active indicator left-edge bar (`::before` pseudo-element, scaleY transition), refined opacity transitions on nav icons.
+- Tables: `table-clickable` class separates clickable rows (cursor: pointer + hover) from non-clickable ones.
+- Buttons: enhanced `btn:active` scale (0.97), shadow on primary/danger/secondary hover for depth.
+- Form inputs: 1.5px border (slightly heavier than 1px for crispness), hover state border color change before focus.
+- Custom scrollbar on all scrollable containers (6px, rounded).
+- Toast: improved slide-in animation with `translateX` + scale for a more polished feel.
+- Print stylesheet `@media print` handles PDF export of challans cleanly.
+- Modal animation: `modalSlideUp` with scale for premium spring effect.
+
+### Key decisions
+- **`window.print()` for PDF:** Avoids adding jsPDF or html2canvas (both are large bundles). The browser's native print dialog supports "Save as PDF" on all platforms. Print CSS ensures clean output. This is the standard approach for simple document export without adding dependencies.
+- **No `POST /auth/delete-user` or `PUT /auth/users/:id`:** Keeping write surface minimal. User creation covers the core admin need. Deletion is a sensitive operation that warrants explicit future scope, not assumption.
+- **CSS-only hover on Dashboard cards:** Inline JS handlers were being used for hover effects, which defeats the purpose of a CSS design system and prevents proper `:hover` CSS from working. Replaced with `.metric-card` and `.module-tile` classes.
+- **`table-clickable` modifier class:** Not all tables have clickable rows (e.g., stock movement log in ProductDetail). Separating the cursor and hover style into a modifier keeps the base table style clean.
+
+---
+
+## Phase 6 — Salesperson Assignment, Role Access Hardening & Stock-Ledger Redesign
+**Date:** 2026-08-09
+
+### What was built & fixed
+
+**1. Customer Salesperson Lead Assignment & Portfolio Ownership:**
+- Updated Prisma schema with `assigned_to` foreign key on `customers` referencing `users(id)` with relation `assigned_salesperson`.
+- Added `GET /auth/sales-reps` API endpoint returning active sales representative accounts (`sales` and `admin` roles).
+- Updated `customer.schema.ts` and `customer.service.ts` to validate and persist `assigned_to`, and support `assigned_to` & `my_customers=true` query parameters.
+- Updated `CustomerList.tsx` with "All Accounts" vs "My Assigned Accounts" filter tabs for Sales users, a Sales Rep filter dropdown, and an "Assigned Sales Rep" table column.
+- Updated `CustomerForm.tsx` with an "Assigned Salesperson" select dropdown.
+- Updated `CustomerDetail.tsx` displaying the assigned sales representative contact details.
+
+**2. Stock-Ledger Dashboard Redesign (Eliminating AI-generic visual cues):**
+- Redesigned Dashboard metric cards and module tiles in `App.tsx`, completely removing AI-generic left-accent colored borders (`borderLeft`).
+- Applied clean paper-ledger aesthetics with subtle parchment borders (`1px solid var(--border)`), dashed tab header dividers, and crisp IBM Plex Mono numeric highlights.
+- Added role-specific operational metrics (e.g., "My Assigned Customers" for Sales reps).
+
+**3. Role-Based Access Controls & Field Restrictions:**
+- Enforced strict field editability boundaries (e.g., `current_stock` in `ProductForm.tsx` is read-only on product edit, forcing stock changes through audit-logged stock movements).
+- Guaranteed that Accounts role receives read-only access with B2B Tax Invoice & Delivery Challan PDF printing/exporting.
+- Restricted user creation and user management (`/users`) exclusively to Administrators.
+
+**4. B2B Tax Invoice PDF Export:**
+- Provided printable PDF export on `ChallanDetail.tsx` formatted as a B2B Tax Invoice & Delivery Challan with company header, consignee details, and itemized subtotal calculations.

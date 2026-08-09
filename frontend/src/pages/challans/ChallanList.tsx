@@ -59,11 +59,11 @@ export default function ChallanList() {
         ) : isError ? (
           <ErrorState onRetry={() => refetch()} />
         ) : !data?.data.length ? (
-          <EmptyState icon="📄" title={status ? `No ${status} challans` : 'No challans yet'}
+          <EmptyState title={status ? `No ${status} challans` : 'No challans yet'}
             action={canCreate ? <button className="btn btn-primary" onClick={() => navigate('/challans/new')}>Create Challan</button> : undefined} />
         ) : (
           <>
-            <table className="table">
+            <table className="table table-clickable">
               <thead>
                 <tr>
                   <th>Challan No.</th>

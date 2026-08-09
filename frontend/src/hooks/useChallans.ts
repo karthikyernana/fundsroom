@@ -22,7 +22,7 @@ export interface Challan {
   status: 'draft' | 'confirmed' | 'cancelled';
   total_quantity: number;
   created_at: string;
-  customer?: Pick<Customer, 'id' | 'name' | 'business_name'>;
+  customer?: Customer;
   creator?: { id: string; name: string };
   challan_items?: ChallanItem[];
   _count?: { challan_items: number };

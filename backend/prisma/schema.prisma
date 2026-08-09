@@ -51,29 +51,32 @@ model users {
   created_at    DateTime @default(now())
 
   // Relations
-  customer_notes  customer_notes[]
-  stock_movements stock_movements[]
-  challans        challans[]
+  customer_notes     customer_notes[]
+  stock_movements    stock_movements[]
+  challans           challans[]
+  assigned_customers customers[]        @relation("CustomerSalesperson")
 }
 
 model customers {
-  id               String         @id @default(uuid())
-  name             String
-  mobile           String
-  email            String?
-  business_name    String?
-  gst_number       String?
-  customer_type    CustomerType
-  address          String
-  status           CustomerStatus @default(lead)
-  follow_up_date   DateTime?
-  notes            String?
-  created_at       DateTime       @default(now())
-  updated_at       DateTime       @updatedAt
+  id                   String         @id @default(uuid())
+  name                 String
+  mobile               String
+  email                String?
+  business_name        String?
+  gst_number           String?
+  customer_type        CustomerType
+  address              String
+  status               CustomerStatus @default(lead)
+  follow_up_date       DateTime?
+  notes                String?
+  assigned_to          String?
+  created_at           DateTime       @default(now())
+  updated_at           DateTime       @updatedAt
 
   // Relations
-  customer_notes customer_notes[]
-  challans       challans[]
+  customer_notes       customer_notes[]
+  challans             challans[]
+  assigned_salesperson users?           @relation("CustomerSalesperson", fields: [assigned_to], references: [id], onDelete: SetNull)
 }
 
 model customer_notes {

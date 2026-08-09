@@ -52,6 +52,20 @@
               "path": ["auth", "me"]
             }
           }
+        },
+        {
+          "name": "Get Sales Representatives (/auth/sales-reps)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sales-reps",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sales-reps"]
+            }
+          }
         }
       ]
     },

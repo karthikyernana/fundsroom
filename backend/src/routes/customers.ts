@@ -26,7 +26,7 @@ router.get(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const query = customerQuerySchema.parse(req.query);
-      const result = await listCustomers(query);
+      const result = await listCustomers(query, req.user?.id);
       res.status(200).json({ success: true, ...result });
     } catch (err) {
       next(err);
