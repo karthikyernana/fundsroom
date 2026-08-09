@@ -19,13 +19,10 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err: unknown) {
-      const axErr = err as { response?: { data?: { error?: { message?: string } } }; message?: string };
-      if (!axErr.response) {
-        setError('Cannot connect to API server. Please ensure the backend is running at http://localhost:3001.');
-      } else {
-        const message = axErr.response.data?.error?.message ?? 'Login failed. Check your email and password.';
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })
+          ?.response?.data?.error?.message ?? 'Login failed. Check your credentials.';
         setError(message);
-      }
     } finally {
       setIsLoading(false);
     }
