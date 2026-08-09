@@ -14,13 +14,13 @@ const PORT = process.env.PORT ?? 3001;
 // ─── Middleware ──────────────────────────────────────────────────────────────
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, curl, postman) or any localhost/127.0.0.1 origin
-    if (!origin || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin === process.env.CORS_ORIGIN) {
-      return callback(null, true);
-    }
-    return callback(null, true);
+    // Reflect back requesting origin (e.g. http://localhost:5174, http://localhost:5173) for credentials support
+    if (!origin) return callback(null, '*');
+    return callback(null, origin);
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());
