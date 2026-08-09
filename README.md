@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 Live Deployment Links
+## Live Deployment Links
 
 - **Live Frontend Application:** [`https://fundsroom-green.vercel.app/`](https://fundsroom-green.vercel.app/)
 - **Live Backend REST API:** [`https://fundsroom-lp8g.onrender.com`](https://fundsroom-lp8g.onrender.com)
@@ -17,21 +17,21 @@
 
 ---
 
-## 🔐 Test Login Credentials
+## Test Login Credentials
 
 All accounts share the default password: **`password123`**
 
 | Role | Email | Password | Scope & Module Permissions |
 |---|---|---|---|
-| 👑 **Admin** | `admin@fundsroom.com` | `password123` | Full system access. Can onboard/manage internal user accounts via `/users`. |
-| 📈 **Sales Lead** | `sales@fundsroom.com` | `password123` | Full CRM access, lead assignment, "My Accounts" filter, draft & confirm challans. |
-| 💼 **Sales Rep 2** | `sales2@fundsroom.com` | `password123` | Separate assigned customer portfolio, lead tracking, draft & confirm challans. |
-| 📦 **Warehouse** | `warehouse@fundsroom.com` | `password123` | Product & Stock CRUD, manual stock movements, read customer context, dispatch challans. |
-| 🧾 **Accounts** | `accounts@fundsroom.com` | `password123` | Read-only across all modules, line item snapshot inspection, Tax Invoice & Challan PDF export. |
+| **Admin** | `admin@fundsroom.com` | `password123` | Full system access. Can onboard/manage internal user accounts via `/users`. |
+| **Sales Lead** | `sales@fundsroom.com` | `password123` | Full CRM access, lead assignment, "My Accounts" filter, draft & confirm challans. |
+| **Sales Rep 2** | `sales2@fundsroom.com` | `password123` | Separate assigned customer portfolio, lead tracking, draft & confirm challans. |
+| **Warehouse** | `warehouse@fundsroom.com` | `password123` | Product & Stock CRUD, manual stock movements, read customer context, dispatch challans. |
+| **Accounts** | `accounts@fundsroom.com` | `password123` | Read-only across all modules, line item snapshot inspection, Tax Invoice & Challan PDF export. |
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technology | Rationale |
 |---|---|---|
@@ -48,7 +48,7 @@ All accounts share the default password: **`password123`**
 
 ---
 
-## 🏗️ Core Architecture & Business Logic
+## Core Architecture & Business Logic
 
 ### 1. Atomic Transaction Safety (§5 — Preventing Stock Overdraw)
 - **Challenge:** Outbound challans can cause negative stock if two concurrent requests attempt to confirm a challan for the last remaining unit (TOCTOU race condition).
@@ -78,7 +78,7 @@ All accounts share the default password: **`password123`**
 
 ---
 
-## 🧪 Automated Integration Test Suite (54 Tests)
+## Automated Integration Test Suite (54 Tests)
 
 A comprehensive integration test suite is included in `backend/src/__tests__/api.test.ts`.
 
@@ -99,7 +99,7 @@ npm test
 
 ---
 
-## 💻 Local Development Setup
+## Local Development Setup
 
 ### Prerequisites
 - Node.js v18+
@@ -149,7 +149,7 @@ cd frontend && npm run dev
 
 ---
 
-## 🌐 Production Deployment Architecture
+## Production Deployment Architecture
 
 ### 1. Backend API (Render)
 - **Deployment Platform:** Render Web Service
@@ -166,7 +166,7 @@ cd frontend && npm run dev
 
 ---
 
-## 📖 API Documentation Reference
+## API Documentation Reference
 
 Base URL: `https://fundsroom-lp8g.onrender.com`
 
@@ -197,7 +197,7 @@ Base URL: `https://fundsroom-lp8g.onrender.com`
 
 ---
 
-## ⚠️ Known Limitations & Tradeoffs
+## Known Limitations & Tradeoffs
 
 1. **In-Memory Post-Filtering for `low_stock`:** Prisma ORM lacks native column-to-column comparison queries (e.g. `WHERE current_stock <= min_stock_alert`). The service fetches category/search filtered records and post-filters in JS. For enterprise scale (100k+ SKUs), this would be refactored to raw SQL `$queryRaw`.
 2. **Stateless JWT Expiration:** Tokens expire after 24 hours. Immediate token revocation prior to expiration would require a Redis token blocklist, omitted to keep deployment lightweight.
