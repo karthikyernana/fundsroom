@@ -6,6 +6,7 @@ import authRoutes from './routes/auth';
 import customerRoutes from './routes/customers';
 import productRoutes from './routes/products';
 import challanRoutes from './routes/challans';
+import docsRoutes from './routes/docs';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -39,6 +40,7 @@ app.use('/auth', authRoutes);
 app.use('/customers', customerRoutes);
 app.use('/products', productRoutes);
 app.use('/challans', challanRoutes);
+app.use('/docs', docsRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {
