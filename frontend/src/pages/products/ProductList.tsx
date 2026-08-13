@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useProducts } from '../../hooks/useProducts';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spinner, EmptyState, ErrorState } from '../../components/ui/States';
@@ -22,11 +22,12 @@ function StockCell({ stock, min }: { stock: number; min: number }) {
 export default function ProductList() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const canWrite = user?.role === 'admin' || user?.role === 'warehouse';
 
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [lowStock, setLowStock] = useState(false);
+  const [lowStock, setLowStock] = useState(searchParams.get('low_stock') === 'true');
   const [page, setPage] = useState(1);
 
   const { data, isLoading, isError, refetch } = useProducts({

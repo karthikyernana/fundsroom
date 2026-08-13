@@ -149,38 +149,49 @@ export async function createChallan(data: CreateChallanInput, userId: string) {
 
   const productMap = new Map(products.map((p) => [p.id, p]));
 
-  const challanNumber = await generateChallanNumber();
   const totalQuantity = consolidatedItems.reduce((sum, i) => sum + i.quantity, 0);
 
-  const challan = await prisma.challans.create({
-    data: {
-      challan_number: challanNumber,
-      customer_id,
-      status: 'draft',
-      total_quantity: totalQuantity,
-      created_by: userId,
-      challan_items: {
-        create: consolidatedItems.map((item) => {
-          const product = productMap.get(item.product_id)!;
-          return {
-            product_id: item.product_id,
-            // Snapshot values — frozen at creation time per §4
-            product_name_snapshot: product.name,
-            product_sku_snapshot: product.sku,
-            unit_price_snapshot: product.unit_price,
-            quantity: item.quantity,
-            subtotal: product.unit_price.toNumber() * item.quantity,
-          };
-        }),
-      },
-    },
-    include: {
-      customer: { select: { id: true, name: true, business_name: true } },
-      challan_items: true,
-    },
-  });
+  // The human-readable daily sequence is protected by a unique constraint.
+  // Two requests can still calculate the same next number, so retry the create
+  // when that constraint is the only thing that lost the race.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const challanNumber = await generateChallanNumber();
+    try {
+      return await prisma.challans.create({
+        data: {
+          challan_number: challanNumber,
+          customer_id,
+          status: 'draft',
+          total_quantity: totalQuantity,
+          created_by: userId,
+          challan_items: {
+            create: consolidatedItems.map((item) => {
+              const product = productMap.get(item.product_id)!;
+              return {
+                product_id: item.product_id,
+                // Snapshot values — frozen at creation time per §4
+                product_name_snapshot: product.name,
+                product_sku_snapshot: product.sku,
+                unit_price_snapshot: product.unit_price,
+                quantity: item.quantity,
+                subtotal: product.unit_price.mul(item.quantity),
+              };
+            }),
+          },
+        },
+        include: {
+          customer: { select: { id: true, name: true, business_name: true } },
+          challan_items: true,
+        },
+      });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002' || attempt === 2) {
+        throw error;
+      }
+    }
+  }
 
-  return challan;
+  throw new AppError(409, 'Could not allocate a challan number. Please retry.');
 }
 
 // ─── Update (draft only) ──────────────────────────────────────────────────────
@@ -189,12 +200,6 @@ export async function updateChallan(
   id: string,
   data: Partial<CreateChallanInput>
 ) {
-  const existing = await prisma.challans.findUnique({ where: { id } });
-  if (!existing) throw new AppError(404, 'Challan not found');
-  if (existing.status !== 'draft') {
-    throw new AppError(400, `Cannot edit a challan that is ${existing.status}`);
-  }
-
   const { customer_id, items } = data;
 
   // Build update payload
@@ -241,16 +246,31 @@ export async function updateChallan(
           product_sku_snapshot: product.sku,
           unit_price_snapshot: product.unit_price,
           quantity: item.quantity,
-          subtotal: product.unit_price.toNumber() * item.quantity,
+          subtotal: product.unit_price.mul(item.quantity),
         };
       }),
     };
   }
 
-  return prisma.challans.update({
-    where: { id },
-    data: updateData,
-    include: { challan_items: true, customer: true },
+  return prisma.$transaction(async (tx) => {
+    // Claim the draft row first. This prevents a concurrent confirmation from
+    // changing its items after stock has been deducted.
+    const locked = await tx.challans.updateMany({
+      where: { id, status: 'draft' },
+      data: { status: 'draft' },
+    });
+
+    if (locked.count === 0) {
+      const existing = await tx.challans.findUnique({ where: { id }, select: { status: true } });
+      if (!existing) throw new AppError(404, 'Challan not found');
+      throw new AppError(400, `Cannot edit a challan that is ${existing.status}`);
+    }
+
+    return tx.challans.update({
+      where: { id },
+      data: updateData,
+      include: { challan_items: true, customer: true },
+    });
   });
 }
 
@@ -274,23 +294,34 @@ export async function updateChallan(
 // acts as a structural backstop at the database level.
 
 export async function confirmChallan(id: string, userId: string) {
-  const challan = await prisma.challans.findUnique({
-    where: { id },
-    include: { challan_items: true },
-  });
-
-  if (!challan) throw new AppError(404, 'Challan not found');
-  if (challan.status === 'confirmed') {
-    throw new AppError(400, 'Challan is already confirmed');
-  }
-  if (challan.status === 'cancelled') {
-    throw new AppError(400, 'Cannot confirm a cancelled challan');
-  }
-  if (challan.challan_items.length === 0) {
-    throw new AppError(400, 'Cannot confirm an empty challan');
-  }
-
   await prisma.$transaction(async (tx) => {
+    // Transition the draft row inside this transaction before touching stock.
+    // This is a conditional state transition, not a read-then-write check:
+    // simultaneous confirmation requests for the same challan cannot both win.
+    const claimed = await tx.challans.updateMany({
+      where: { id, status: 'draft' },
+      data: { status: 'confirmed' },
+    });
+
+    if (claimed.count === 0) {
+      const current = await tx.challans.findUnique({ where: { id }, select: { status: true } });
+      if (!current) throw new AppError(404, 'Challan not found');
+      if (current.status === 'confirmed') throw new AppError(400, 'Challan is already confirmed');
+      throw new AppError(400, 'Cannot confirm a cancelled challan');
+    }
+
+    const challan = await tx.challans.findUnique({
+      where: { id },
+      include: { challan_items: true },
+    });
+
+    // A claimed row is guaranteed to exist, but keep this guard to make the
+    // service safe if the schema changes later.
+    if (!challan) throw new AppError(404, 'Challan not found');
+    if (challan.challan_items.length === 0) {
+      throw new AppError(400, 'Cannot confirm an empty challan');
+    }
+
     for (const item of challan.challan_items) {
       // Single atomic statement: condition + write in one round trip.
       // No lock needed separately — the WHERE clause makes it safe.
@@ -328,11 +359,6 @@ export async function confirmChallan(id: string, userId: string) {
       });
     }
 
-    // Flip challan to confirmed
-    await tx.challans.update({
-      where: { id },
-      data: { status: 'confirmed' },
-    });
   });
 
   return prisma.challans.findUnique({
@@ -348,18 +374,22 @@ export async function confirmChallan(id: string, userId: string) {
 // ─── Cancel ───────────────────────────────────────────────────────────────────
 
 export async function cancelChallan(id: string) {
-  const challan = await prisma.challans.findUnique({ where: { id } });
-  if (!challan) throw new AppError(404, 'Challan not found');
-  if (challan.status === 'confirmed') {
-    throw new AppError(400, 'Cannot cancel a confirmed challan — contact admin');
-  }
-  if (challan.status === 'cancelled') {
+  const cancelled = await prisma.challans.updateMany({
+    where: { id, status: 'draft' },
+    data: { status: 'cancelled' },
+  });
+
+  if (cancelled.count === 0) {
+    const challan = await prisma.challans.findUnique({ where: { id }, select: { status: true } });
+    if (!challan) throw new AppError(404, 'Challan not found');
+    if (challan.status === 'confirmed') {
+      throw new AppError(400, 'Cannot cancel a confirmed challan — contact admin');
+    }
     throw new AppError(400, 'Challan is already cancelled');
   }
 
-  return prisma.challans.update({
+  return prisma.challans.findUnique({
     where: { id },
-    data: { status: 'cancelled' },
     include: { customer: true, challan_items: true },
   });
 }

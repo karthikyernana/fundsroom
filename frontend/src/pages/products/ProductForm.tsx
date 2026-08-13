@@ -48,12 +48,19 @@ export default function ProductForm() {
       errs.sku = 'SKU contains invalid characters';
     }
     if (!values.category.trim()) errs.category = 'Category is required';
-    if (!values.unit_price || Number(values.unit_price) <= 0) errs.unit_price = 'Enter a positive price';
-    if (values.min_stock_alert !== '' && Number(values.min_stock_alert) < 0) {
-      errs.min_stock_alert = 'Min stock alert cannot be negative';
+    const price = Number(values.unit_price);
+    if (!Number.isFinite(price) || price <= 0 || !/^\d+(\.\d{1,2})?$/.test(values.unit_price)) {
+      errs.unit_price = 'Enter a positive price with at most 2 decimal places';
     }
-    if (!isEdit && values.current_stock !== '' && Number(values.current_stock) < 0) {
-      errs.current_stock = 'Opening stock cannot be negative';
+    const minStock = Number(values.min_stock_alert);
+    if (!Number.isSafeInteger(minStock) || minStock < 0) {
+      errs.min_stock_alert = 'Min stock alert must be a non-negative whole number';
+    }
+    if (!isEdit) {
+      const openingStock = Number(values.current_stock);
+      if (!Number.isSafeInteger(openingStock) || openingStock < 0) {
+        errs.current_stock = 'Opening stock must be a non-negative whole number';
+      }
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;

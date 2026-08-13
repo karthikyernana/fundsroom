@@ -22,6 +22,13 @@ const EMPTY: Record<string, string> = {
   status: 'lead', follow_up_date: '', notes: '', assigned_to: '',
 };
 
+function todayLocalDate() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 import { useToast } from '../../components/ui/Toast';
 
 export default function CustomerForm() {
@@ -62,7 +69,7 @@ export default function CustomerForm() {
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!values.name.trim()) errs.name = 'Name is required';
-    if (!values.mobile.trim() || values.mobile.length < 10) errs.mobile = 'Valid mobile required';
+    if (!/^\d{10,15}$/.test(values.mobile.trim())) errs.mobile = 'Enter a 10–15 digit mobile number';
     if (!values.address.trim()) errs.address = 'Address is required';
     if (!values.customer_type) errs.customer_type = 'Customer type is required';
     if (values.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
@@ -72,8 +79,8 @@ export default function CustomerForm() {
     if (values.gst_number && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(values.gst_number)) {
       errs.gst_number = 'Invalid GST number format (e.g. 27AABCP1234A1Z5)';
     }
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (values.follow_up_date && values.follow_up_date < todayStr) {
+    const todayStr = todayLocalDate();
+    if (!isEdit && values.follow_up_date && values.follow_up_date < todayStr) {
       errs.follow_up_date = 'Follow-up date cannot be in the past';
     }
     setErrors(errs);
@@ -208,7 +215,7 @@ export default function CustomerForm() {
             <div className="form-group">
               <label className="form-label" htmlFor="c-followup">Follow-up Date</label>
               <input id="c-followup" type="date" className={`form-input mono${errors.follow_up_date ? ' error' : ''}`}
-                min={new Date().toISOString().split('T')[0]}
+                min={isEdit ? undefined : todayLocalDate()}
                 value={values.follow_up_date} onChange={(e) => set('follow_up_date', e.target.value)} />
               {errors.follow_up_date && <div className="form-error">{errors.follow_up_date}</div>}
             </div>

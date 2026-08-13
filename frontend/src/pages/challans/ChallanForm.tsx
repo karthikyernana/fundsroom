@@ -69,8 +69,8 @@ export default function ChallanForm() {
       setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: '' as unknown as number } : i));
       return;
     }
-    const val = parseInt(rawVal, 10);
-    if (isNaN(val)) return;
+    const val = Number(rawVal);
+    if (!Number.isSafeInteger(val)) return;
     setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: Math.max(1, val) } : i));
   };
 
@@ -120,7 +120,11 @@ export default function ChallanForm() {
   const totalValue = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
   const isPending = create.isPending || update.isPending;
 
-  const selectedCustomer = customersData?.data.find((c) => c.id === customerId);
+  // An existing draft's customer may not be in the first page of the selector
+  // results; retain the server-supplied customer rather than showing it as
+  // unselected and risking an accidental reassignment.
+  const selectedCustomer = customersData?.data.find((c) => c.id === customerId)
+    ?? (existing?.customer_id === customerId ? existing.customer : undefined);
 
   return (
     <div className="main-content">

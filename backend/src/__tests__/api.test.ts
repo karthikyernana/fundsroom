@@ -446,6 +446,29 @@ describe('Challan lifecycle', () => {
     expect(final.body.data.current_stock).toBe(0);
   });
 
+  it('concurrency: confirming the same challan twice deducts stock only once', async () => {
+    const prod = await request(app).post('/products').set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'Same Challan Race', sku: 'SAME-CHALLAN-RACE', category: 'Test', unit_price: 50, current_stock: 5 });
+    const productForRace = prod.body.data.id;
+
+    const draft = await request(app).post('/challans').set('Authorization', `Bearer ${salesToken}`)
+      .send({ customer_id: customerId, items: [{ product_id: productForRace, quantity: 2 }] });
+    expect(draft.status).toBe(201);
+
+    const [first, second] = await Promise.all([
+      request(app).post(`/challans/${draft.body.data.id}/confirm`).set('Authorization', `Bearer ${salesToken}`),
+      request(app).post(`/challans/${draft.body.data.id}/confirm`).set('Authorization', `Bearer ${salesToken}`),
+    ]);
+    expect([first.status, second.status].sort()).toEqual([200, 400]);
+
+    const final = await request(app).get(`/products/${productForRace}`).set('Authorization', `Bearer ${adminToken}`);
+    expect(final.body.data.current_stock).toBe(3);
+
+    const movementLog = await request(app).get(`/products/${productForRace}/stock-movements`).set('Authorization', `Bearer ${adminToken}`);
+    const outgoing = movementLog.body.data.movements.filter((m: { movement_type: string }) => m.movement_type === 'OUT');
+    expect(outgoing).toHaveLength(1);
+  });
+
   it('cannot cancel already-cancelled challan', async () => {
     const draft = await request(app).post('/challans').set('Authorization', `Bearer ${salesToken}`)
       .send({ customer_id: customerId, items: [{ product_id: productId, quantity: 1 }] });

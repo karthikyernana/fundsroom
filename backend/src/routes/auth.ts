@@ -9,9 +9,9 @@ import { authenticate, requireRole, AuthenticatedRequest } from '../middleware/a
 const router = Router();
 
 const loginSchema = z.object({
-  email: z.string().email('Valid email required'),
+  email: z.string().trim().toLowerCase().email('Valid email required'),
   password: z.string().min(1, 'Password required'),
-});
+}).strict();
 
 // POST /auth/login
 router.post(
@@ -117,11 +117,11 @@ router.get(
 );
 
 const registerSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(100),
-  email: z.string().email('Valid email required'),
+  name: z.string().trim().min(1, 'Name is required').max(100),
+  email: z.string().trim().toLowerCase().email('Valid email required'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   role: z.enum(['admin', 'sales', 'warehouse', 'accounts']),
-});
+}).strict();
 
 // POST /auth/register — Admin only: create a new user
 router.post(

@@ -8,11 +8,13 @@ export const challanItemSchema = z.object({
 export const createChallanSchema = z.object({
   customer_id: z.string().uuid('Invalid customer ID'),
   items: z.array(challanItemSchema).min(1, 'Challan must have at least one item'),
-});
+}).strict();
 
 export const updateChallanSchema = z.object({
   customer_id: z.string().uuid().optional(),
   items: z.array(challanItemSchema).min(1).optional(),
+}).strict().refine((data) => data.customer_id !== undefined || data.items !== undefined, {
+  message: 'Provide at least one field to update',
 });
 
 export const challanQuerySchema = z.object({

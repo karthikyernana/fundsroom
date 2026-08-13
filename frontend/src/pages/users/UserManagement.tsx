@@ -77,11 +77,11 @@ export default function UserManagement() {
       setShowForm(false);
     },
     onError: (err: unknown) => {
-      const axErr = err as { response?: { data?: { error?: { message?: string; details?: Record<string, string[]> } } } };
+      const axErr = err as { response?: { data?: { error?: { message?: string; details?: { field: string; message: string }[] } } } };
       const details = axErr?.response?.data?.error?.details;
       if (details) {
         const mapped: Record<string, string> = {};
-        Object.entries(details).forEach(([k, msgs]) => { mapped[k] = msgs[0]; });
+        details.forEach(({ field, message }) => { mapped[field] = message; });
         setErrors(mapped);
       } else {
         const msg = axErr?.response?.data?.error?.message ?? 'Could not create user.';

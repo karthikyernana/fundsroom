@@ -160,52 +160,51 @@ export async function addStockMovement(
   const product = await prisma.products.findUnique({ where: { id: productId } });
   if (!product) throw new AppError(404, 'Product not found');
 
-  if (data.movement_type === 'OUT') {
-    // Non-negative stock guard — same atomic pattern used in challan confirm
-    const affected = await prisma.$executeRaw`
-      UPDATE "products"
-      SET    "current_stock" = "current_stock" - ${data.quantity_changed},
-             "updated_at"   = NOW()
-      WHERE  "id"           = ${productId}
-      AND    "current_stock" >= ${data.quantity_changed}
-    `;
+  // The stock update and audit record are one unit of work. Without this
+  // transaction, an audit-log failure would leave inventory changed but
+  // untraceable.
+  return prisma.$transaction(async (tx) => {
+    if (data.movement_type === 'OUT') {
+      const affected = await tx.$executeRaw`
+        UPDATE "products"
+        SET    "current_stock" = "current_stock" - ${data.quantity_changed},
+               "updated_at"   = NOW()
+        WHERE  "id"           = ${productId}
+        AND    "current_stock" >= ${data.quantity_changed}
+      `;
 
-    if (affected === 0) {
-      // Re-fetch for accurate error message
-      const fresh = await prisma.products.findUnique({
+      if (affected === 0) {
+        const fresh = await tx.products.findUnique({
+          where: { id: productId },
+          select: { current_stock: true },
+        });
+        throw new AppError(
+          409,
+          `Insufficient stock: available ${fresh?.current_stock ?? 0}, ` +
+          `requested ${data.quantity_changed}`
+        );
+      }
+    } else {
+      await tx.products.update({
         where: { id: productId },
-        select: { current_stock: true },
+        data: { current_stock: { increment: data.quantity_changed } },
       });
-      throw new AppError(
-        409,
-        `Insufficient stock: available ${fresh?.current_stock ?? 0}, ` +
-        `requested ${data.quantity_changed}`
-      );
     }
-  } else {
-    // IN movement — safe to do normally
-    await prisma.products.update({
-      where: { id: productId },
-      data: { current_stock: { increment: data.quantity_changed } },
+
+    return tx.stock_movements.create({
+      data: {
+        product_id: productId,
+        quantity_changed: data.quantity_changed,
+        movement_type: data.movement_type,
+        reason: data.reason || undefined,
+        created_by: userId,
+      },
+      include: {
+        user: { select: { id: true, name: true } },
+        product: { select: { id: true, name: true, sku: true, current_stock: true } },
+      },
     });
-  }
-
-  // Write movement record
-  const movement = await prisma.stock_movements.create({
-    data: {
-      product_id: productId,
-      quantity_changed: data.quantity_changed,
-      movement_type: data.movement_type,
-      reason: data.reason || undefined,
-      created_by: userId,
-    },
-    include: {
-      user: { select: { id: true, name: true } },
-      product: { select: { id: true, name: true, sku: true, current_stock: true } },
-    },
   });
-
-  return movement;
 }
 
 // ─── Get stock movements ──────────────────────────────────────────────────────

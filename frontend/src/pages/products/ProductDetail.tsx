@@ -31,8 +31,8 @@ export default function ProductDetail() {
   const handleMovSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMovError('');
-    const quantity = parseInt(qty);
-    if (!quantity || quantity <= 0) { setMovError('Enter a positive integer quantity'); return; }
+    const quantity = Number(qty);
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) { setMovError('Enter a positive whole-number quantity'); return; }
     if (product && movType === 'OUT' && quantity > product.current_stock) {
       setMovError(`Cannot deduct ${quantity} units: only ${product.current_stock} available in stock.`);
       return;

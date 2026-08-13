@@ -85,6 +85,8 @@ export async function getCustomer(id: string) {
 // ─── Create ───────────────────────────────────────────────────────────────────
 
 export async function createCustomer(data: CreateCustomerInput) {
+  await validateAssignedSalesperson(data.assigned_to);
+
   // Normalise optional empties to null/undefined
   const createData: Prisma.customersCreateInput = {
     name: data.name,
@@ -112,6 +114,10 @@ export async function updateCustomer(id: string, data: UpdateCustomerInput) {
   const existing = await prisma.customers.findUnique({ where: { id } });
   if (!existing) throw new AppError(404, 'Customer not found');
 
+  if (data.assigned_to !== undefined) {
+    await validateAssignedSalesperson(data.assigned_to);
+  }
+
   const updateData: Prisma.customersUpdateInput = {};
   if (data.name !== undefined) updateData.name = data.name;
   if (data.mobile !== undefined) updateData.mobile = data.mobile;
@@ -134,6 +140,20 @@ export async function updateCustomer(id: string, data: UpdateCustomerInput) {
     data: updateData,
     include: { assigned_salesperson: { select: { id: true, name: true, email: true } } },
   });
+}
+
+async function validateAssignedSalesperson(assignedTo: string | null | undefined) {
+  if (!assignedTo) return;
+
+  const assignee = await prisma.users.findUnique({
+    where: { id: assignedTo },
+    select: { role: true },
+  });
+
+  if (!assignee) throw new AppError(404, 'Assigned salesperson not found');
+  if (assignee.role !== 'sales' && assignee.role !== 'admin') {
+    throw new AppError(400, 'Customers can only be assigned to an admin or sales user');
+  }
 }
 
 // ─── Add note ─────────────────────────────────────────────────────────────────

@@ -252,14 +252,14 @@ function Dashboard() {
     { label: 'Products',      value: productData?.meta.total ?? '—',      unit: 'in catalog',       color: 'var(--ledger)', visible: canSeeProducts,  to: '/products'  },
     { label: 'Low Stock',     value: lowStock,                             unit: 'alert threshold',  color: lowStock > 0 ? 'var(--brick)' : 'var(--olive)', visible: canSeeProducts, to: '/products?low_stock=true' },
     { label: 'Challans',      value: totalChallans,                        unit: 'total dispatches', color: 'var(--ledger)', visible: true,            to: '/challans'  },
-    { label: 'Draft Dispatches', value: draftChallanData?.meta.total ?? '—', unit: 'pending action', color: 'var(--stamp)',  visible: true,            to: '/challans'  },
+    { label: 'Draft Dispatches', value: draftChallanData?.meta.total ?? '—', unit: 'pending action', color: 'var(--stamp)',  visible: true,            to: '/challans?status=draft'  },
   ].filter(m => m.visible);
 
   // ── Module quick-access tiles
   const tiles = [
     { to: '/customers', label: 'Customer CRM',      desc: 'Leads, active accounts, follow-up timeline & rep assignments', visible: canSeeCustomers },
     { to: '/products',  label: 'Inventory & Stock',  desc: 'Stock catalog, warehouse locations, and movement audit logs', visible: canSeeProducts },
-    { to: '/challans',  label: 'Sales Challans',     desc: 'Draft, confirm dispatches & export printable tax invoices', visible: true },
+    { to: '/challans',  label: 'Sales Challans',     desc: 'Draft, confirm, and review outbound dispatches', visible: true },
   ].filter(t => t.visible);
 
   return (

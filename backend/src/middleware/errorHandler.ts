@@ -65,6 +65,20 @@ export function errorHandler(
       });
       return;
     }
+    if (err.code === 'P2003') {
+      res.status(409).json({
+        success: false,
+        error: { code: 'CONFLICT', message: 'This record is still referenced by another record.' },
+      });
+      return;
+    }
+    if (err.code === 'P2023') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'BAD_REQUEST', message: 'A supplied record identifier is invalid.' },
+      });
+      return;
+    }
   }
 
   // Unknown / unexpected errors → 500, no internals exposed

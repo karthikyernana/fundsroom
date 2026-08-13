@@ -126,10 +126,10 @@ export default function ChallanDetail() {
                 id="export-pdf-btn"
                 className="btn btn-secondary"
                 onClick={handlePrint}
-                title="Export Invoice PDF"
+                title="Print challan"
               >
                 <PrintIcon />
-                Export PDF
+                Print Challan
               </button>
             )}
           </div>
@@ -252,15 +252,15 @@ export default function ChallanDetail() {
       </div>
 
       {/* ───────────────────────────────────────────────────────────────────────
-          PRINT-ONLY DEDICATED INVOICE / CHALLAN DOCUMENT
+          PRINT-ONLY DELIVERY CHALLAN DOCUMENT
       ─────────────────────────────────────────────────────────────────────── */}
       <div className="print-invoice-document">
         {/* Document Header */}
         <div className="inv-header">
           <div className="inv-brand">
             <div className="inv-logo">FUNDSROOM</div>
-            <div className="inv-sub">Operations &amp; Logistics Enterprise Portal</div>
-            <div className="inv-address">HQ Plaza, Financial District, Bandra Kurla Complex, Mumbai · GSTIN: 27AABCF1234H1Z5</div>
+            <div className="inv-sub">Operations Portal</div>
+            <div className="inv-address">Generated delivery challan</div>
           </div>
           <div className="inv-meta-right">
             <div className="inv-title">DELIVERY CHALLAN</div>
@@ -290,7 +290,6 @@ export default function ChallanDetail() {
             <div className="inv-box-title">DISPATCH DETAILS</div>
             <div className="inv-row"><span>Challan Date:</span> <strong>{formatDateShort(challan.created_at)}</strong></div>
             <div className="inv-row"><span>Dispatched By:</span> <strong>{challan.creator?.name}</strong></div>
-            <div className="inv-row"><span>Transport Mode:</span> <strong>Surface Express Dispatch</strong></div>
             <div className="inv-row"><span>Total Line Items:</span> <strong>{challan.challan_items?.length}</strong></div>
             <div className="inv-row"><span>Total Quantity:</span> <strong>{challan.total_quantity} units</strong></div>
           </div>
@@ -342,9 +341,8 @@ export default function ChallanDetail() {
           <div className="inv-terms">
             <div className="inv-box-title">TERMS &amp; CONDITIONS</div>
             <ol>
-              <li>Goods once dispatched are subject to standard verification upon receipt.</li>
-              <li>This Delivery Challan serves as official record of stock transfer.</li>
-              <li>Subject to Mumbai Jurisdiction.</li>
+              <li>Goods should be verified by the recipient on delivery.</li>
+              <li>This document records the stock dispatched under this challan.</li>
             </ol>
           </div>
           <div className="inv-signatory">

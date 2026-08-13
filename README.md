@@ -28,7 +28,7 @@ All accounts share the default password: **`password123`**
 | **Sales Lead** | `sales@fundsroom.com` | `password123` | Full CRM access, lead assignment, "My Accounts" filter, draft & confirm challans. |
 | **Sales Rep 2** | `sales2@fundsroom.com` | `password123` | Separate assigned customer portfolio, lead tracking, draft & confirm challans. |
 | **Warehouse** | `warehouse@fundsroom.com` | `password123` | Product & Stock CRUD, manual stock movements, read customer context, dispatch challans. |
-| **Accounts** | `accounts@fundsroom.com` | `password123` | Read-only across all modules, line item snapshot inspection, Tax Invoice & Challan PDF export. |
+| **Accounts** | `accounts@fundsroom.com` | `password123` | Read-only across all modules, including customer, inventory, and challan records. |
 
 ---
 
@@ -45,7 +45,7 @@ All accounts share the default password: **`password123`**
 | **Frontend** | React 19 + TypeScript (Vite) | High performance, modular component architecture, fast HMR. |
 | **State & Fetching** | TanStack Query v5 | Server state management, auto-caching, and optimistic cache invalidation. |
 | **Styling & UI** | Plain CSS (Custom Tokens) | Zero heavy UI frameworks — precision design system following PRD tokens. |
-| **Typography** | Plus Jakarta Sans + Instrument Serif + IBM Plex Mono | Professional financial editorial typography hierarchy. |
+| **Typography** | IBM Plex Sans + IBM Plex Mono | Ledger-style hierarchy specified for the case study. |
 
 ---
 
@@ -79,24 +79,26 @@ All accounts share the default password: **`password123`**
 
 ---
 
-## Automated Integration Test Suite (54 Tests)
+## Automated Integration Test Suite (55 Scenarios)
 
 A comprehensive integration test suite is included in `backend/src/__tests__/api.test.ts`.
 
 ### Run Tests:
 ```bash
 cd backend
+# Set TEST_DATABASE_URL to a dedicated database first. The suite clears its
+# application tables before it runs.
 npm test
 ```
 
 ### Test Coverage Highlights:
 - **Auth (9 tests):** Valid logins across 4 roles, password hashing, invalid credentials, malformed tokens, `/auth/me` user profile.
 - **Customers (17 tests):** Full CRUD, role permissions, search, pagination, assigned sales rep filtering, GST regex format validation (`^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$`), follow-up date validation.
-- **Products & Stock (12 tests):** SKU uppercase transformation, duplicate SKU rejection, negative stock prevention, stock movement logging, `low_stock` filtering, and exact zero stock boundary test.
-- **Challans (14 tests):** Sequential `CH-YYYYMMDD-NNNN` generation, line item consolidation, draft edit restrictions, atomic confirm stock deduction, 409 insufficient stock rollback proof, and concurrent double-confirm race protection.
+- **Products & Stock (13 tests):** SKU uppercase transformation, duplicate SKU rejection, negative stock prevention, stock movement logging, `low_stock` filtering, and exact zero stock boundary test.
+- **Challans (14 tests):** Sequential `CH-YYYYMMDD-NNNN` generation, line item consolidation, draft edit restrictions, atomic confirm stock deduction, rollback proof, and both cross-challan and same-challan concurrency protection.
 - **System Routes (2 tests):** `/health` endpoint and 404 JSON fallback handler.
 
-**All 54 tests pass with 100% coverage of PRD requirements.**
+Run the suite against a dedicated, migrated test database before each release; it is intentionally blocked when `TEST_DATABASE_URL` is absent to protect local and production data.
 
 ---
 
@@ -125,6 +127,8 @@ JWT_SECRET="super-secret-key-32-chars-long"
 PORT=3001
 CORS_ORIGIN="http://localhost:5173"
 NODE_ENV="development"
+# Required only for npm test; this database is cleared by the integration suite.
+TEST_DATABASE_URL="postgresql://postgres:[PASSWORD]@[HOST]:5432/fundsroom_test"
 ```
 
 Create `frontend/.env`:

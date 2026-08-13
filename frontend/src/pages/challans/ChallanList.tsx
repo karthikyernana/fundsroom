@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useChallans } from '../../hooks/useChallans';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spinner, EmptyState, ErrorState } from '../../components/ui/States';
@@ -13,9 +13,10 @@ function formatDate(s: string) {
 export default function ChallanList() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const canCreate = user?.role !== 'accounts';
 
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(searchParams.get('status') ?? '');
   const [page, setPage] = useState(1);
 
   const { data, isLoading, isError, refetch } = useChallans({
