@@ -14,6 +14,9 @@ const PORT = process.env.PORT ?? 3001;
 
 // ─── Middleware ──────────────────────────────────────────────────────────────
 const allowedOrigin = process.env.CORS_ORIGIN;
+if (process.env.NODE_ENV === 'production' && !allowedOrigin) {
+  throw new Error('CORS_ORIGIN must be configured when NODE_ENV is production');
+}
 app.use(cors({
   origin: (origin, callback) => {
     // In production, only allow the configured CORS_ORIGIN

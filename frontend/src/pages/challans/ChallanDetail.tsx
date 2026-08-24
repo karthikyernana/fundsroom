@@ -51,7 +51,7 @@ export default function ChallanDetail() {
   const [actionError, setActionError] = useState('');
 
   const canConfirm = user?.role !== 'accounts' && challan?.status === 'draft';
-  const canCancel  = (user?.role === 'admin' || user?.role === 'warehouse') && challan?.status !== 'confirmed';
+  const canCancel  = (user?.role === 'admin' || user?.role === 'warehouse') && challan?.status === 'draft';
   const canEdit    = user?.role !== 'accounts' && challan?.status === 'draft';
   const canExport  = challan?.status === 'confirmed';
 
