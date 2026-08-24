@@ -92,10 +92,16 @@ export default function ChallanForm() {
     const errs: Record<string, string> = {};
     if (!customerId) errs.customer = 'Select a customer';
     if (items.length === 0) errs.items = 'Add at least one product';
+    // Guard against cleared quantity inputs being submitted as ""/NaN.
+    items.forEach((i) => {
+      if (!Number.isSafeInteger(i.quantity) || i.quantity < 1) {
+        errs.items = `Invalid quantity for ${i.name || i.sku}`;
+      }
+    });
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
-    const payload = { customer_id: customerId, items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })) };
+    const payload = { customer_id: customerId, items: items.map((i) => ({ product_id: i.product_id, quantity: Number(i.quantity) })) };
 
     try {
       if (isEdit) {

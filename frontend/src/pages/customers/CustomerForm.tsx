@@ -44,10 +44,13 @@ export default function CustomerForm() {
 
   const { values, errors, set, setErrors } = useFormState<Record<string, string>>(EMPTY);
   const [submitError, setSubmitError] = React.useState('');
+  // Populate the form only once — background refetches must not clobber edits.
+  const initializedRef = React.useRef(false);
 
   // Populate form when editing
   useEffect(() => {
-    if (isEdit && existing) {
+    if (isEdit && existing && !initializedRef.current) {
+      initializedRef.current = true;
       Object.entries(EMPTY).forEach(([key]) => {
         let val = (existing as unknown as Record<string, unknown>)[key];
         if (key === 'assigned_to') {
@@ -101,7 +104,9 @@ export default function CustomerForm() {
       customer_type: values.customer_type as 'retail' | 'wholesale' | 'distributor',
       address: values.address,
       status: values.status as 'lead' | 'active' | 'inactive',
-      follow_up_date: values.follow_up_date ? new Date(values.follow_up_date).toISOString() : undefined,
+      // Send the YYYY-MM-DD string as-is; converting via new Date().toISOString()
+      // shifts the date a day for timezones ahead of UTC.
+      follow_up_date: values.follow_up_date || undefined,
       notes: values.notes || undefined,
       assigned_to: values.assigned_to || undefined,
     };

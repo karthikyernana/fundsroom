@@ -14,16 +14,46 @@ export async function listProducts(query: ProductQuery) {
   const { search, category, page = 1, limit = 20, low_stock } = query;
   const skip = (page - 1) * limit;
 
+  if (low_stock) {
+    // Column-to-column comparison (current_stock <= min_stock_alert) is not
+    // supported natively by Prisma filters, so use a parameterized raw query
+    // to keep filtering and pagination in the database.
+    const conditions: Prisma.Sql[] = [Prisma.sql`"current_stock" <= "min_stock_alert"`];
+    if (category) conditions.push(Prisma.sql`LOWER("category") = LOWER(${category})`);
+    if (search) {
+      const pattern = `%${search}%`;
+      conditions.push(
+        Prisma.sql`("name" ILIKE ${pattern} OR "sku" ILIKE ${pattern} OR "category" ILIKE ${pattern} OR "location" ILIKE ${pattern})`
+      );
+    }
+    const whereSql = Prisma.join(conditions, ' AND ');
+    const orderBy = Prisma.sql`ORDER BY "category" ASC, "name" ASC`;
+
+type ProductRow = NonNullable<Awaited<ReturnType<typeof prisma.products.findFirst>>>;
+
+    const [products, countResult] = await Promise.all([
+      prisma.$queryRaw<ProductRow[]>`
+        SELECT * FROM "products" WHERE ${whereSql} ${orderBy} LIMIT ${limit} OFFSET ${skip}
+      `,
+      prisma.$queryRaw<{ count: bigint }[]>`
+        SELECT COUNT(*)::bigint AS count FROM "products" WHERE ${whereSql}
+      `,
+    ]);
+
+    const total = Number(countResult[0]?.count ?? 0);
+    return {
+      data: products,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   const where: Prisma.productsWhereInput = {};
   if (category) where.category = { equals: category, mode: 'insensitive' };
-  if (low_stock) {
-    // Products whose current_stock is at or below min_stock_alert
-    where.current_stock = { lte: prisma.products.fields.min_stock_alert as unknown as number };
-    // Prisma doesn't support column-to-column comparisons natively —
-    // we use a raw approach: filter in application layer after fetching (handled below)
-    // Remove the broken where and instead post-filter
-    delete where.current_stock;
-  }
   if (search) {
     where.OR = [
       { name: { contains: search, mode: 'insensitive' } },
@@ -37,26 +67,19 @@ export async function listProducts(query: ProductQuery) {
     prisma.products.findMany({
       where,
       skip,
-      take: low_stock ? undefined : limit, // fetch all for post-filter if low_stock
+      take: limit,
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
     }),
     prisma.products.count({ where }),
   ]);
 
-  // Post-filter for low_stock (column-to-column comparison)
-  const filtered = low_stock
-    ? products.filter((p) => p.current_stock <= p.min_stock_alert)
-    : products;
-
-  const paginated = low_stock ? filtered.slice(skip, skip + limit) : filtered;
-
   return {
-    data: paginated,
+    data: products,
     meta: {
-      total: low_stock ? filtered.length : total,
+      total,
       page,
       limit,
-      totalPages: Math.ceil((low_stock ? filtered.length : total) / limit),
+      totalPages: Math.ceil(total / limit),
     },
   };
 }
@@ -157,13 +180,17 @@ export async function addStockMovement(
   data: StockMovementInput,
   userId: string
 ) {
-  const product = await prisma.products.findUnique({ where: { id: productId } });
-  if (!product) throw new AppError(404, 'Product not found');
+  const existing = await prisma.products.findUnique({ where: { id: productId } });
+  if (!existing) throw new AppError(404, 'Product not found');
 
   // The stock update and audit record are one unit of work. Without this
   // transaction, an audit-log failure would leave inventory changed but
   // untraceable.
   return prisma.$transaction(async (tx) => {
+    // Re-check existence inside the transaction to avoid TOCTOU with deletes.
+    if (!(await tx.products.findUnique({ where: { id: productId } }))) {
+      throw new AppError(404, 'Product not found');
+    }
     if (data.movement_type === 'OUT') {
       const affected = await tx.$executeRaw`
         UPDATE "products"

@@ -6,6 +6,18 @@ import { useToast } from '../../components/ui/Toast';
 
 const EMPTY = { name: '', sku: '', category: '', unit_price: '', current_stock: '0', min_stock_alert: '10', location: '' };
 
+// Hoisted so inputs are not remounted on every keystroke (which loses focus).
+function Field({ id: fid, label, type = 'text', required = false, mono = false, placeholder = '', value, error, onChange }: { id: string; label: string; type?: string; required?: boolean; mono?: boolean; placeholder?: string; value: string; error?: string; onChange: (v: string) => void }) {
+  return (
+    <div className="form-group">
+      <label className="form-label" htmlFor={fid}>{label}{required && ' *'}</label>
+      <input id={fid} type={type} className={`form-input${mono ? ' mono' : ''}${error ? ' error' : ''}`}
+        value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
+      {error && <div className="form-error">{error}</div>}
+    </div>
+  );
+}
+
 export default function ProductForm() {
   const { id } = useParams<{ id?: string }>();
   const isEdit = !!id;
@@ -19,6 +31,8 @@ export default function ProductForm() {
   const [values, setValues] = React.useState(EMPTY);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
   const [submitError, setSubmitError] = React.useState('');
+  // Populate the form only once — background refetches must not clobber edits.
+  const initializedRef = React.useRef(false);
 
   const set = (k: string, v: string) => {
     setValues((prev) => ({ ...prev, [k]: k === 'sku' ? v.toUpperCase() : v }));
@@ -26,7 +40,8 @@ export default function ProductForm() {
   };
 
   useEffect(() => {
-    if (isEdit && existing) {
+    if (isEdit && existing && !initializedRef.current) {
+      initializedRef.current = true;
       setValues({
         name: existing.name,
         sku: existing.sku,
@@ -112,15 +127,6 @@ export default function ProductForm() {
 
   const isPending = create.isPending || update.isPending;
 
-  const Field = ({ id: fid, label, type = 'text', required = false, mono = false, placeholder = '' }: { id: string; label: string; type?: string; required?: boolean; mono?: boolean; placeholder?: string }) => (
-    <div className="form-group">
-      <label className="form-label" htmlFor={fid}>{label}{required && ' *'}</label>
-      <input id={fid} type={type} className={`form-input${mono ? ' mono' : ''}${errors[fid] ? ' error' : ''}`}
-        value={values[fid as keyof typeof values]} onChange={(e) => set(fid, e.target.value)} placeholder={placeholder} />
-      {errors[fid] && <div className="form-error">{errors[fid]}</div>}
-    </div>
-  );
-
   return (
     <div className="main-content">
       <div className="page-header">
@@ -135,14 +141,14 @@ export default function ProductForm() {
       <div className="card" style={{ maxWidth: 640 }}>
         {submitError && <div className="alert alert-error">{submitError}</div>}
         <form id="product-form" onSubmit={handleSubmit}>
-          <Field id="name" label="Product Name" required />
+          <Field id="name" label="Product Name" required value={values.name} error={errors.name} onChange={(v) => set('name', v)} />
           <div className="form-grid">
-            <Field id="sku" label="SKU" required mono placeholder="BRG-6205-STD" />
-            <Field id="category" label="Category" required placeholder="Bearings" />
-            <Field id="unit_price" label="Unit Price (₹)" type="number" required mono />
-            <Field id="min_stock_alert" label="Min Stock Alert" type="number" mono />
-            {!isEdit && <Field id="current_stock" label="Opening Stock" type="number" mono />}
-            <Field id="location" label="Warehouse Location" placeholder="Rack A-12" />
+            <Field id="sku" label="SKU" required mono placeholder="BRG-6205-STD" value={values.sku} error={errors.sku} onChange={(v) => set('sku', v)} />
+            <Field id="category" label="Category" required placeholder="Bearings" value={values.category} error={errors.category} onChange={(v) => set('category', v)} />
+            <Field id="unit_price" label="Unit Price (₹)" type="number" required mono value={values.unit_price} error={errors.unit_price} onChange={(v) => set('unit_price', v)} />
+            <Field id="min_stock_alert" label="Min Stock Alert" type="number" mono value={values.min_stock_alert} error={errors.min_stock_alert} onChange={(v) => set('min_stock_alert', v)} />
+            {!isEdit && <Field id="current_stock" label="Opening Stock" type="number" mono value={values.current_stock} error={errors.current_stock} onChange={(v) => set('current_stock', v)} />}
+            <Field id="location" label="Warehouse Location" placeholder="Rack A-12" value={values.location} error={errors.location} onChange={(v) => set('location', v)} />
           </div>
 
           {isEdit && (

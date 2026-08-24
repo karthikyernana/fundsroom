@@ -10,15 +10,18 @@ export const createCustomerSchema = z.object({
   mobile: z.string().trim().regex(/^\d{10,15}$/, 'Mobile number must contain 10 to 15 digits'),
   email: z.string().trim().toLowerCase().email('Valid email required').optional().or(z.literal('')),
   business_name: z.string().max(150).optional(),
-  gst_number: z.string().regex(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/, 'Invalid GST number format').optional().or(z.literal('')),
+  gst_number: z.string().transform((val) => val.trim().toUpperCase()).refine(
+    (val) => /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(val),
+    { message: 'Invalid GST number format' }
+  ).optional().or(z.literal('')),
   customer_type: z.enum(['retail', 'wholesale', 'distributor']),
   address: z.string().min(1, 'Address is required').max(300),
   status: z.enum(['lead', 'active', 'inactive']).default('lead'),
   follow_up_date: validFollowUpDateSchema
     .refine((val) => {
       const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return new Date(val) >= today;
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      return val >= todayStr;
     }, { message: 'Follow-up date cannot be in the past' })
     .optional()
     .or(z.literal('')),

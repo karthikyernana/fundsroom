@@ -23,6 +23,9 @@ router.post(
       const user = await prisma.users.findUnique({ where: { email } });
 
       if (!user) {
+        // Constant-time-ish: still perform a bcrypt compare so response timing
+        // does not reveal whether the email exists.
+        await bcrypt.compare(password, '$2a$12$C6UzMDM.H6dfI/f/IKcEe.6uGHbVpSMzY0sFyEG1dOgNtB4wZQ0Wi');
         throw new AppError(401, 'Invalid email or password');
       }
 
