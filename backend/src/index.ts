@@ -42,6 +42,21 @@ app.use('/products', productRoutes);
 app.use('/challans', challanRoutes);
 app.use('/docs', docsRoutes);
 
+// A useful landing response for the deployed API URL. Resource routes remain
+// intentionally namespaced, but opening the base URL should guide operators
+// instead of looking like a broken deployment.
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      service: 'FundsRoom Operations API',
+      status: 'ok',
+      health: '/health',
+      documentation: '/docs',
+    },
+  });
+});
+
 // Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

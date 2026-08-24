@@ -140,7 +140,7 @@ export default function ChallanForm() {
       <form id="challan-form" onSubmit={handleSubmit}>
         {submitError && <div className="alert alert-error" style={{ marginBottom: 'var(--sp3)' }}>{submitError}</div>}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp3)', marginBottom: 'var(--sp3)' }}>
+        <div className="form-summary-grid">
           {/* Customer selector */}
           <div className="card">
             <div className="card-header">

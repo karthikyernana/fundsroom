@@ -89,7 +89,7 @@ export default function CustomerDetail() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp3)', marginBottom: 'var(--sp3)' }}>
+      <div className="detail-grid">
         {/* ── Details card */}
         <div className="card">
           <div className="card-header">

@@ -10,21 +10,6 @@ const LogoMark = ({ size = 24, color = 'currentColor' }: { size?: number; color?
   </svg>
 );
 
-// ─── Animated Architectural Vault Geometry Artwork for Hero Panel ─────────────
-const HeroVaultArtwork = () => (
-  <div className="login-hero-artwork">
-    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="100" cy="100" r="95" stroke="rgba(226,217,200,0.12)" strokeWidth="1" strokeDasharray="4 4" />
-      <circle cx="100" cy="100" r="75" stroke="rgba(255,255,255,0.18)" strokeWidth="1.5" />
-      <circle cx="100" cy="100" r="55" stroke="rgba(226,217,200,0.25)" strokeWidth="1" strokeDasharray="6 6" />
-      <rect x="60" y="60" width="80" height="80" rx="12" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" transform="rotate(45 100 100)" />
-      <rect x="70" y="70" width="60" height="60" rx="8" stroke="rgba(226,217,200,0.4)" strokeWidth="1.5" />
-      <circle cx="100" cy="100" r="16" fill="rgba(255,255,255,0.15)" stroke="#E2D9C8" strokeWidth="2" />
-      <circle cx="100" cy="100" r="5" fill="#FFFFFF" />
-    </svg>
-  </div>
-);
-
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -56,63 +41,47 @@ export default function Login() {
     <div className="login-root">
       <div className="login-split-wrapper">
         
-        {/* ───────────────────────────────────────────────────────────────────
-            LEFT HERO SHOWCASE PANEL (Single Authoritative Logo for Desktop)
-        ─────────────────────────────────────────────────────────────────── */}
         <div className="login-hero-panel">
-          {/* Subtle Banknote/Ledger background mesh pattern & floating ambient orbs */}
           <div className="login-hero-pattern" />
-          <div className="login-hero-glow-1" />
-          <div className="login-hero-glow-2" />
 
-          {/* Top Brand Logo Header (DESKTOP SINGLE LOGO) */}
           <div className="login-hero-header">
             <div className="login-hero-logo-box">
               <LogoMark size={26} color="#FFFFFF" />
             </div>
             <div>
-              <span style={{ fontFamily: 'var(--font-brand)', fontWeight: 800, fontSize: '1.375rem', letterSpacing: '0.08em', color: '#FFFFFF', display: 'block', lineHeight: 1 }}>
+              <span className="login-hero-brand">
                 FUNDSROOM
               </span>
-              <span style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '0.625rem', letterSpacing: '0.14em', color: '#E2D9C8', textTransform: 'uppercase', marginTop: '4px' }}>
+              <span className="login-hero-brand-subtitle">
                 Operations Portal
               </span>
             </div>
           </div>
 
-          {/* Central Hero Artwork & High-Craft Content */}
           <div className="login-hero-content">
-            <HeroVaultArtwork />
-
             <h1 className="login-hero-headline">
-              Precision Stock &amp; <br />
-              <span className="login-hero-serif">Financial Control</span>
+              One ledger for<br />
+              every dispatch.
             </h1>
 
             <p className="login-hero-subhead">
-              Enterprise Logistics &amp; Operations Portal for internal stock audit, dispatch authorization, and real-time inventory management.
+              A focused workspace for customer follow-ups, warehouse stock, and the paperwork that moves goods out the door.
             </p>
           </div>
 
-          {/* Abstract System Status Footer */}
-          <div style={{ position: 'relative', zIndex: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 'var(--sp3)' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>
-              FundsRoom Enterprise v1.0
+          <div className="login-hero-footer">
+            <span>
+              Internal operations workspace
             </span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: '#E2D9C8', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="login-hero-badge-pulse" style={{ width: 6, height: 6 }} />
-              System Status: Active
+            <span>
+              Authorized access only
             </span>
           </div>
         </div>
 
-        {/* ───────────────────────────────────────────────────────────────────
-            RIGHT SIGN-IN FORM PANEL (Parchment Tone #EDE7DA)
-        ─────────────────────────────────────────────────────────────────── */}
         <div className="login-form-panel">
           <div className="login-form-box">
             
-            {/* Mobile-Only Logo Header (Hidden on Desktop to prevent duplicate logos) */}
             <div className="login-mobile-brand">
               <div className="login-brand-icon">
                 <LogoMark size={24} color="#FFFFFF" />
@@ -123,10 +92,10 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Login Card */}
             <div className="login-card">
-              <h2 className="login-title">Sign in to Portal</h2>
-              <p className="login-subtitle">Enter your corporate credentials to continue.</p>
+              <div className="eyebrow">Secure sign in</div>
+              <h2 className="login-title">Welcome back</h2>
+              <p className="login-subtitle">Use the account assigned to your operations role.</p>
 
               {error && (
                 <div className="alert alert-error login-error-shake" style={{ marginBottom: 'var(--sp3)' }}>

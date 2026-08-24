@@ -159,7 +159,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main style={{ flex: 1, overflowY: 'auto', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main className="workspace-main">
         {/* Mobile header — only visible at ≤600px via CSS */}
         <div className="mobile-header">
           <button
@@ -170,7 +170,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <div style={{ marginLeft: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', fontSize: '0.9375rem' }}>FundsRoom</div>
+          <div className="mobile-brand">FundsRoom</div>
         </div>
         {children}
       </main>
@@ -180,41 +180,23 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
 // ─── Recent Challans mini-list ────────────────────────────────────────────────
 function RecentChallanRow({ c, navigate }: { c: { id: string; challan_number: string; status: string; customer?: { name: string } | null; created_at: string }; navigate: (to: string) => void }) {
-  const statusColors: Record<string, { bg: string; color: string }> = {
-    draft:     { bg: 'rgba(201,138,44,0.10)', color: 'var(--stamp)' },
-    confirmed: { bg: 'rgba(76,107,63,0.12)',  color: 'var(--olive)' },
-    cancelled: { bg: 'rgba(166,52,26,0.08)',  color: 'var(--brick)' },
-  };
-  const sc = statusColors[c.status] ?? statusColors.draft;
   return (
     <div
       onClick={() => navigate(`/challans/${c.id}`)}
       role="button"
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && navigate(`/challans/${c.id}`)}
-      style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px var(--sp2)', borderBottom: '1px solid rgba(201,191,168,0.4)',
-        cursor: 'pointer', transition: 'background var(--transition)',
-        borderRadius: 4,
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(237,231,218,0.6)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      className="dispatch-row"
     >
-      <div>
-        <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: '0.875rem', color: 'var(--ink)' }}>{c.challan_number}</div>
-        <div style={{ fontSize: '0.8125rem', color: 'var(--ink-muted)', marginTop: 1 }}>{c.customer?.name ?? '—'}</div>
+      <div className="dispatch-row-primary">
+        <div className="dispatch-number">{c.challan_number}</div>
+        <div className="dispatch-customer">{c.customer?.name ?? '—'}</div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp2)' }}>
-        <div style={{ fontSize: '0.75rem', color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)' }}>
+      <div className="dispatch-row-meta">
+        <div className="dispatch-date">
           {new Date(c.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
         </div>
-        <span style={{
-          padding: '2px 8px', borderRadius: 2, fontSize: '0.625rem', fontWeight: 700,
-          letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)',
-          background: sc.bg, color: sc.color,
-          border: `1px solid ${sc.color}30`,
-        }}>{c.status}</span>
+        <span className={`dispatch-status dispatch-status-${c.status}`}>{c.status}</span>
       </div>
     </div>
   );
@@ -247,12 +229,12 @@ function Dashboard() {
   const recentChallans = challanData?.data ?? [];
 
   const metrics = [
-    ...(role === 'sales' ? [{ label: 'My Customers', value: myCustomerData?.meta.total ?? '—', unit: 'assigned to me', color: 'var(--ledger)', visible: true, to: '/customers?my_customers=true' }] : []),
-    { label: 'All Customers', value: customerData?.meta.total ?? '—',    unit: 'total CRM records', color: 'var(--ledger)', visible: canSeeCustomers, to: '/customers' },
-    { label: 'Products',      value: productData?.meta.total ?? '—',      unit: 'in catalog',       color: 'var(--ledger)', visible: canSeeProducts,  to: '/products'  },
-    { label: 'Low Stock',     value: lowStock,                             unit: 'alert threshold',  color: lowStock > 0 ? 'var(--brick)' : 'var(--olive)', visible: canSeeProducts, to: '/products?low_stock=true' },
-    { label: 'Challans',      value: totalChallans,                        unit: 'total dispatches', color: 'var(--ledger)', visible: true,            to: '/challans'  },
-    { label: 'Draft Dispatches', value: draftChallanData?.meta.total ?? '—', unit: 'pending action', color: 'var(--stamp)',  visible: true,            to: '/challans?status=draft'  },
+    ...(role === 'sales' ? [{ label: 'My Customers', value: myCustomerData?.meta.total ?? '—', unit: 'assigned to me', tone: 'ledger', visible: true, to: '/customers?my_customers=true' }] : []),
+    { label: 'All Customers', value: customerData?.meta.total ?? '—',    unit: 'total CRM records', tone: 'ledger', visible: canSeeCustomers, to: '/customers' },
+    { label: 'Products',      value: productData?.meta.total ?? '—',      unit: 'in catalog',       tone: 'ledger', visible: canSeeProducts,  to: '/products'  },
+    { label: 'Low Stock',     value: lowStock,                             unit: 'alert threshold',  tone: lowStock > 0 ? 'brick' : 'olive', visible: canSeeProducts, to: '/products?low_stock=true' },
+    { label: 'Challans',      value: totalChallans,                        unit: 'total dispatches', tone: 'ledger', visible: true,            to: '/challans'  },
+    { label: 'Draft Dispatches', value: draftChallanData?.meta.total ?? '—', unit: 'pending action', tone: 'stamp',  visible: true,            to: '/challans?status=draft'  },
   ].filter(m => m.visible);
 
   // ── Module quick-access tiles
@@ -263,81 +245,52 @@ function Dashboard() {
   ].filter(t => t.visible);
 
   return (
-    <div className="main-content">
-      {/* ── Page header ── */}
-      <div className="page-header" style={{ marginBottom: 'var(--sp3)' }}>
+    <div className="main-content dashboard-page">
+      <div className="dashboard-header">
         <div>
-          <h1 className="page-title" style={{ fontSize: '1.375rem' }}>{getGreeting()}, {user?.name?.split(' ')[0]}</h1>
-          <p className="page-subtitle">Operations ledger overview · {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <div className="eyebrow">Operations desk</div>
+          <h1 className="page-title">{getGreeting()}, {user?.name?.split(' ')[0]}</h1>
+          <p className="page-subtitle">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })} · live operational picture</p>
         </div>
-        <div style={{
-          fontFamily: 'var(--font-mono)',
-          fontSize: '0.6875rem',
-          padding: '5px 14px',
-          background: 'var(--ledger)',
-          color: '#fff',
-          borderRadius: 'var(--radius)',
-          textTransform: 'uppercase',
-          fontWeight: 700,
-          letterSpacing: '0.1em',
-        }}>
+        <div className="role-chip">
           {user?.role}
         </div>
       </div>
 
-      {/* ── Metric strip (Ledger Paper Grid — No left lines) ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(metrics.length, 5)}, 1fr)`, gap: 'var(--sp2)', marginBottom: 'var(--sp4)' }}>
+      <div className="metric-grid">
         {metrics.map((m, i) => (
           <div
             key={m.label}
-            className="metric-card"
-            style={{
-              background: '#FFFFFF',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              padding: 'var(--sp2) var(--sp3)',
-              cursor: 'pointer',
-              animationDelay: `${i * 40}ms`,
-              animation: 'cardEnter 280ms cubic-bezier(0.16,1,0.3,1) both',
-              boxShadow: '0 1px 3px rgba(33,29,24,0.05)',
-            }}
+            className={`metric-card metric-card-${m.tone}`}
+            style={{ animationDelay: `${i * 45}ms` }}
             onClick={() => navigate(m.to)}
             role="button" tabIndex={0}
             onKeyDown={e => e.key === 'Enter' && navigate(m.to)}
           >
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              paddingBottom: 6, marginBottom: 8,
-              borderBottom: '1px dashed rgba(201,191,168,0.7)',
-            }}>
-              <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{m.label}</span>
-            </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: '2rem', fontWeight: 700, color: m.color, lineHeight: 1 }}>
-              {m.value}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--ink-faint)', marginTop: 6, fontFamily: 'var(--font-sans)' }}>{m.unit}</div>
+            <span className="metric-label">{m.label}</span>
+            <div className="metric-value">{m.value}</div>
+            <div className="metric-unit">{m.unit}</div>
           </div>
         ))}
       </div>
 
-      {/* ── Main content grid ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 'var(--sp3)', alignItems: 'start' }}>
+      <div className="dashboard-grid">
 
         {/* Left: Recent Challans */}
-        <div className="card" style={{ animationDelay: '160ms' }}>
+        <div className="card dispatch-panel">
           <div className="card-header">
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <h2 style={{ fontSize: '0.875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Recent Dispatches</h2>
-              <div style={{ fontSize: '0.75rem', color: 'var(--ink-faint)', marginTop: 2 }}>Latest outbound challans</div>
+            <div>
+              <h2 className="section-title">Recent dispatches</h2>
+              <div className="section-subtitle">Latest paperwork leaving the warehouse</div>
             </div>
             <button className="btn btn-ghost btn-sm" onClick={() => navigate('/challans')}>View all</button>
           </div>
           {recentChallans.length === 0 ? (
-            <div style={{ padding: 'var(--sp4)', textAlign: 'center', color: 'var(--ink-muted)', fontSize: '0.9rem' }}>
+            <div className="dashboard-empty">
               No challans created yet.
             </div>
           ) : (
-            <div style={{ marginTop: 4 }}>
+            <div className="dispatch-list">
               {recentChallans.map(c => (
                 <RecentChallanRow key={c.id} c={c} navigate={navigate} />
               ))}
@@ -346,28 +299,18 @@ function Dashboard() {
         </div>
 
         {/* Right: Quick links + low-stock alert */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp2)' }}>
-          {/* Module tiles */}
+        <div className="dashboard-side">
           {tiles.map((tile, i) => (
             <div
               key={tile.to}
-              className="module-tile"
+              className="module-tile dashboard-module-tile"
               onClick={() => navigate(tile.to)}
               role="button" tabIndex={0}
               onKeyDown={e => e.key === 'Enter' && navigate(tile.to)}
-              style={{
-                background: '#FFFFFF',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-lg)',
-                padding: 'var(--sp2) var(--sp3)',
-                cursor: 'pointer',
-                animationDelay: `${200 + i * 40}ms`,
-                animation: 'cardEnter 280ms cubic-bezier(0.16,1,0.3,1) both',
-                boxShadow: '0 1px 3px rgba(33,29,24,0.05)',
-              }}
+              style={{ animationDelay: `${180 + i * 45}ms` }}
             >
-              <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--ledger)', marginBottom: 2 }}>{tile.label}</div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--ink-muted)', lineHeight: 1.4 }}>{tile.desc}</div>
+              <div className="module-tile-label">{tile.label}</div>
+              <div className="module-tile-desc">{tile.desc}</div>
             </div>
           ))}
 
@@ -377,21 +320,13 @@ function Dashboard() {
               onClick={() => navigate('/products?low_stock=true')}
               role="button" tabIndex={0}
               onKeyDown={e => e.key === 'Enter' && navigate('/products?low_stock=true')}
-              style={{
-                padding: 'var(--sp2) var(--sp3)',
-                background: '#FFFFFF',
-                border: '1px solid var(--brick)',
-                borderRadius: 'var(--radius-lg)',
-                cursor: 'pointer',
-                animationDelay: '360ms',
-                animation: 'cardEnter 280ms cubic-bezier(0.16,1,0.3,1) both',
-              }}
+              className="stock-callout"
             >
-              <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--brick)', marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="stock-callout-title">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><circle cx="12" cy="16" r="0.5" fill="currentColor" strokeWidth="3"/></svg>
                 {lowStock} low stock {lowStock === 1 ? 'alert' : 'alerts'}
               </div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--ink-muted)' }}>Items require warehouse replenishment</div>
+              <div className="stock-callout-copy">Items require warehouse replenishment</div>
             </div>
           )}
         </div>

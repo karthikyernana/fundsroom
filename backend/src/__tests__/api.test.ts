@@ -491,6 +491,15 @@ describe('Challan lifecycle', () => {
 });
 
 // ─── 5. HEALTH + 404 ────────────────────────────────────────────────────────
+describe('GET /', () => {
+  it('returns API service guidance', async () => {
+    const res = await request(app).get('/');
+    expect(res.status).toBe(200);
+    expect(res.body.data.health).toBe('/health');
+    expect(res.body.data.documentation).toBe('/docs');
+  });
+});
+
 describe('GET /health', () => {
   it('returns status ok', async () => {
     const res = await request(app).get('/health');
