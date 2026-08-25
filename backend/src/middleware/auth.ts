@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import { AppError } from '../lib/AppError';
+import { prisma } from '../lib/prisma';
 import { Role } from '@prisma/client';
 
 export interface AuthenticatedRequest extends Request {
@@ -10,15 +12,22 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+const tokenPayloadSchema = z.object({
+  id: z.string().min(1),
+  role: z.nativeEnum(Role),
+});
+
 /**
  * Verifies JWT from the Authorization: Bearer <token> header.
- * Attaches decoded user to req.user.
+ * The token signature proves identity; the user's current role is always
+ * re-read from the database so role changes and deletions take effect
+ * immediately instead of living for the remaining token lifetime.
  */
-export function authenticate(
+export async function authenticate(
   req: AuthenticatedRequest,
   _res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   const authHeader = req.headers.authorization;
 
   if (!authHeader?.startsWith('Bearer ')) {
@@ -32,12 +41,26 @@ export function authenticate(
     return next(new AppError(500, 'JWT secret not configured'));
   }
 
+  let decoded: { id: string; role: Role };
   try {
-    const decoded = jwt.verify(token, secret) as { id: string; role: Role };
-    req.user = { id: decoded.id, role: decoded.role };
-    next();
+    decoded = tokenPayloadSchema.parse(jwt.verify(token, secret));
   } catch {
     next(new AppError(401, 'Invalid or expired token'));
+    return;
+  }
+
+  try {
+    const user = await prisma.users.findUnique({
+      where: { id: decoded.id },
+      select: { id: true, role: true },
+    });
+    if (!user) {
+      return next(new AppError(401, 'Invalid or expired token'));
+    }
+    req.user = { id: user.id, role: user.role };
+    next();
+  } catch {
+    next(new AppError(500, 'Authentication failed'));
   }
 }
 

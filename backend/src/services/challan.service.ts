@@ -1,6 +1,6 @@
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/AppError';
-import { Prisma } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,18 +32,14 @@ async function generateChallanNumber(): Promise<string> {
   ].join('');
 
   const prefix = `CH-${datePart}-`;
-  const latest = await prisma.challans.findFirst({
-    where: { challan_number: { startsWith: prefix } },
-    orderBy: { challan_number: 'desc' },
-    select: { challan_number: true },
-  });
-
-  let seqNum = 1;
-  if (latest) {
-    const parts = latest.challan_number.split('-');
-    const lastSeq = parseInt(parts[parts.length - 1], 10);
-    if (!isNaN(lastSeq)) seqNum = lastSeq + 1;
-  }
+  // Numeric MAX on the sequence segment — lexicographic ordering breaks once
+  // the sequence passes 9999 ("10000" sorts before "9999").
+  const rows = await prisma.$queryRaw<{ max_seq: number | null }[]>`
+    SELECT MAX(CAST(SUBSTRING("challan_number" FROM ${prefix.length + 1}) AS INTEGER)) AS max_seq
+    FROM "challans"
+    WHERE "challan_number" LIKE ${`${prefix}%`}
+  `;
+  const seqNum = (rows[0]?.max_seq ?? 0) + 1;
 
   const seq = String(seqNum).padStart(4, '0');
   return `${prefix}${seq}`;
@@ -372,20 +368,77 @@ export async function confirmChallan(id: string, userId: string) {
 }
 
 // ─── Cancel ───────────────────────────────────────────────────────────────────
+//
+// Draft cancellation is a simple state flip (no stock was ever deducted).
+// Cancelling a CONFIRMED challan reverses the dispatch: stock is re-incremented
+// and a compensating IN movement is written per item, all inside one
+// transaction so inventory and the audit trail can never diverge. This path is
+// admin-only, enforced by the caller passing the actor's role.
 
-export async function cancelChallan(id: string) {
-  const cancelled = await prisma.challans.updateMany({
-    where: { id, status: 'draft' },
-    data: { status: 'cancelled' },
+export async function cancelChallan(id: string, actorRole?: Role, actorId?: string) {
+  const existing = await prisma.challans.findUnique({
+    where: { id },
+    select: { status: true, challan_number: true },
   });
+  if (!existing) throw new AppError(404, 'Challan not found');
 
-  if (cancelled.count === 0) {
-    const challan = await prisma.challans.findUnique({ where: { id }, select: { status: true } });
-    if (!challan) throw new AppError(404, 'Challan not found');
-    if (challan.status === 'confirmed') {
-      throw new AppError(400, 'Cannot cancel a confirmed challan — contact admin');
-    }
+  if (existing.status === 'cancelled') {
     throw new AppError(400, 'Challan is already cancelled');
+  }
+
+  if (existing.status === 'confirmed') {
+    if (actorRole !== 'admin') {
+      throw new AppError(403, 'Only an admin can cancel a confirmed challan');
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Claim the row conditionally — a concurrent confirm/cancel cannot win.
+      const claimed = await tx.challans.updateMany({
+        where: { id, status: 'confirmed' },
+        data: { status: 'cancelled' },
+      });
+      if (claimed.count === 0) {
+        throw new AppError(409, 'Challan was modified concurrently, please retry');
+      }
+
+      const challan = await tx.challans.findUnique({
+        where: { id },
+        include: { challan_items: true },
+      });
+      // Guaranteed by the claim above; kept as an invariant guard.
+      if (!challan) throw new AppError(404, 'Challan not found');
+
+      for (const item of challan.challan_items) {
+        const updated = await tx.products.updateMany({
+          where: { id: item.product_id },
+          data: { current_stock: { increment: item.quantity } },
+        });
+        if (updated.count === 0) {
+          throw new AppError(
+            410,
+            `Product "${item.product_name_snapshot}" no longer exists; cannot restore stock`
+          );
+        }
+
+        await tx.stock_movements.create({
+          data: {
+            product_id: item.product_id,
+            quantity_changed: item.quantity,
+            movement_type: 'IN',
+            reason: `Cancellation of Challan ${challan.challan_number}`,
+            created_by: actorId ?? '',
+          },
+        });
+      }
+    });
+  } else {
+    const cancelled = await prisma.challans.updateMany({
+      where: { id, status: 'draft' },
+      data: { status: 'cancelled' },
+    });
+    if (cancelled.count === 0) {
+      throw new AppError(409, 'Challan was modified concurrently, please retry');
+    }
   }
 
   return prisma.challans.findUnique({

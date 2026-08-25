@@ -10,18 +10,55 @@ interface ModalProps {
   maxWidth?: number;
 }
 
+const FOCUSABLE = 'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])';
+
 export function Modal({ isOpen, onClose, title, children, footer, maxWidth = 560 }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
 
-  // Close on Escape
+  // Close on Escape; trap Tab inside the dialog
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = Array.from(
+          dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)
+        ).filter((el) => el.offsetParent !== null);
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
+
+  // Move focus into the dialog on open, restore it to the trigger on close
+  useEffect(() => {
+    if (!isOpen) return;
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    if (dialog) {
+      const target =
+        dialog.querySelector<HTMLElement>(FOCUSABLE) ?? dialog;
+      target.focus();
+    }
+    return () => {
+      previouslyFocused.current?.focus?.();
+    };
+  }, [isOpen]);
 
   // Lock body scroll
   useEffect(() => {
@@ -36,11 +73,16 @@ export function Modal({ isOpen, onClose, title, children, footer, maxWidth = 560
       className="modal-overlay"
       ref={overlayRef}
       onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
     >
-      <div className="modal" style={{ maxWidth }}>
+      <div
+        className="modal"
+        style={{ maxWidth }}
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        tabIndex={-1}
+      >
         <div className="modal-header">
           <h2 className="modal-title" id="modal-title">{title}</h2>
           <button

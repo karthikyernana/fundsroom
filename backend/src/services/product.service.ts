@@ -100,21 +100,7 @@ export async function getProduct(id: string) {
 
 // ─── Create ───────────────────────────────────────────────────────────────────
 
-export async function createProduct(data: CreateProductInput, userId?: string) {
-  if (userId) {
-    return createProductWithUser(data, userId);
-  }
-
-  // Fallback: find first admin/user to record initial movement if needed
-  const defaultUser = await prisma.users.findFirst({ select: { id: true } });
-  if (!defaultUser) throw new AppError(500, 'System user missing');
-
-  return createProductWithUser(data, defaultUser.id);
-}
-
-// ─── Create with userId (used by route handler) ───────────────────────────────
-
-export async function createProductWithUser(data: CreateProductInput, userId: string) {
+export async function createProduct(data: CreateProductInput, userId: string) {
   const existing = await prisma.products.findUnique({ where: { sku: data.sku } });
   if (existing) throw new AppError(409, `SKU "${data.sku}" already exists`);
 
@@ -236,17 +222,31 @@ export async function addStockMovement(
 
 // ─── Get stock movements ──────────────────────────────────────────────────────
 
-export async function getStockMovements(productId: string) {
+export async function getStockMovements(
+  productId: string,
+  query: { page?: number; limit?: number } = {}
+) {
+  const { page = 1, limit = 20 } = query;
   const product = await prisma.products.findUnique({ where: { id: productId } });
   if (!product) throw new AppError(404, 'Product not found');
 
-  const movements = await prisma.stock_movements.findMany({
-    where: { product_id: productId },
-    orderBy: { created_at: 'desc' },
-    include: {
-      user: { select: { id: true, name: true, role: true } },
-    },
-  });
+  const where = { product_id: productId };
+  const [movements, total] = await Promise.all([
+    prisma.stock_movements.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { created_at: 'desc' },
+      include: {
+        user: { select: { id: true, name: true, role: true } },
+      },
+    }),
+    prisma.stock_movements.count({ where }),
+  ]);
 
-  return { product, movements };
+  return {
+    product,
+    movements,
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
 }

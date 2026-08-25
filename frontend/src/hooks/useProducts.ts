@@ -80,7 +80,11 @@ export function useStockMovements(productId: string) {
   return useQuery({
     queryKey: ['stock-movements', productId],
     queryFn: async () => {
-      const res = await api.get(`/products/${productId}/stock-movements`);
+      // Request the maximum page size the API allows; the audit trail is
+      // paginated server-side, so this is the largest single fetch.
+      const res = await api.get(`/products/${productId}/stock-movements`, {
+        params: { page: 1, limit: 100 },
+      });
       return res.data.data as { product: Product; movements: StockMovement[] };
     },
     enabled: !!productId,
@@ -90,7 +94,7 @@ export function useStockMovements(productId: string) {
 export function useAddStockMovement(productId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { quantity_changed: number; movement_type: 'IN' | 'OUT'; reason?: string }) =>
+    mutationFn: (data: { quantity_changed: number; movement_type: 'IN' | 'OUT'; reason: string }) =>
       api.post(`/products/${productId}/stock-movements`, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['products'] });

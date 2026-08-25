@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useCreateChallan, useUpdateChallan, useChallan } from '../../hooks/useChallans';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useProducts } from '../../hooks/useProducts';
-import { Spinner, EmptyState } from '../../components/ui/States';
+import { Spinner, EmptyState, ErrorState } from '../../components/ui/States';
 import { useToast } from '../../components/ui/Toast';
+
+// Small debounce so picker searches don't fire a request per keystroke.
+function useDebounced<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 
 interface LineItem {
   product_id: string;
@@ -12,7 +22,7 @@ interface LineItem {
   sku: string;
   unit_price: number;
   current_stock: number;
-  quantity: number;
+  quantity: number | '';
 }
 
 export default function ChallanForm() {
@@ -20,7 +30,7 @@ export default function ChallanForm() {
   const isEdit = !!id;
   const navigate = useNavigate();
 
-  const { data: existing, isLoading: existingLoading } = useChallan(id ?? '');
+  const { data: existing, isLoading: existingLoading, isError: existingError } = useChallan(id ?? '');
   const create = useCreateChallan();
   const update = useUpdateChallan(id ?? '');
 
@@ -31,10 +41,20 @@ export default function ChallanForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState('');
 
-  const { data: customersData } = useCustomers({ search: customerSearch || undefined, limit: 50 });
-  const { data: productsData } = useProducts({ search: productSearch || undefined, limit: 50 });
+  const debouncedCustomerSearch = useDebounced(customerSearch);
+  const debouncedProductSearch = useDebounced(productSearch);
+  const { data: customersData } = useCustomers({ search: debouncedCustomerSearch || undefined, limit: 50 });
+  const { data: productsData } = useProducts({ search: debouncedProductSearch || undefined, limit: 50 });
 
   const initializedRef = React.useRef(false);
+
+  // Guard: only draft challans are editable — anyone hitting /challans/:id/edit
+  // directly for a confirmed/cancelled challan gets bounced to the detail page.
+  React.useEffect(() => {
+    if (isEdit && existing && !initializedRef.current && existing.status !== 'draft') {
+      navigate(`/challans/${id}`, { replace: true });
+    }
+  }, [existing, isEdit, id, navigate]);
 
   // Populate for edit
   React.useEffect(() => {
@@ -57,7 +77,7 @@ export default function ChallanForm() {
   const addProduct = (p: { id: string; name: string; sku: string; unit_price: number; current_stock: number }) => {
     const exists = items.find((i) => i.product_id === p.id);
     if (exists) {
-      setItems((prev) => prev.map((i) => i.product_id === p.id ? { ...i, quantity: i.quantity + 1 } : i));
+      setItems((prev) => prev.map((i) => i.product_id === p.id ? { ...i, quantity: (Number(i.quantity) || 0) + 1 } : i));
     } else {
       setItems((prev) => [...prev, { product_id: p.id, name: p.name, sku: p.sku, unit_price: p.unit_price, current_stock: p.current_stock, quantity: 1 }]);
     }
@@ -66,7 +86,7 @@ export default function ChallanForm() {
 
   const handleQtyChange = (productId: string, rawVal: string) => {
     if (rawVal === '') {
-      setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: '' as unknown as number } : i));
+      setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: '' } : i));
       return;
     }
     const val = Number(rawVal);
@@ -74,8 +94,8 @@ export default function ChallanForm() {
     setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: Math.max(1, val) } : i));
   };
 
-  const handleQtyBlur = (productId: string, currentVal: number) => {
-    if (!currentVal || currentVal <= 0) {
+  const handleQtyBlur = (productId: string, currentVal: number | '') => {
+    if (currentVal === '' || currentVal <= 0) {
       setItems((prev) => prev.map((i) => i.product_id === productId ? { ...i, quantity: 1 } : i));
     }
   };
@@ -94,7 +114,7 @@ export default function ChallanForm() {
     if (items.length === 0) errs.items = 'Add at least one product';
     // Guard against cleared quantity inputs being submitted as ""/NaN.
     items.forEach((i) => {
-      if (!Number.isSafeInteger(i.quantity) || i.quantity < 1) {
+      if (!Number.isSafeInteger(Number(i.quantity)) || Number(i.quantity) < 1) {
         errs.items = `Invalid quantity for ${i.name || i.sku}`;
       }
     });
@@ -121,9 +141,16 @@ export default function ChallanForm() {
   };
 
   if (isEdit && existingLoading) return <div className="main-content"><div className="state-container"><Spinner size="lg" /></div></div>;
+  if (isEdit && existingError) {
+    return (
+      <div className="main-content">
+        <ErrorState message="Challan not found or failed to load" onRetry={() => navigate('/challans')} />
+      </div>
+    );
+  }
 
-  const totalQty = items.reduce((s, i) => s + i.quantity, 0);
-  const totalValue = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const totalQty = items.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+  const totalValue = items.reduce((s, i) => s + i.unit_price * (Number(i.quantity) || 0), 0);
   const isPending = create.isPending || update.isPending;
 
   // An existing draft's customer may not be in the first page of the selector
@@ -150,7 +177,7 @@ export default function ChallanForm() {
           {/* Customer selector */}
           <div className="card">
             <div className="card-header">
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Customer *</h3>
+              <h3 className="card-section-title">Customer *</h3>
               {selectedCustomer && <span style={{ fontSize: '0.875rem', color: 'var(--olive)', fontWeight: 600 }}>Selected</span>}
             </div>
             {errors.customer && <div className="alert alert-error" style={{ marginBottom: 'var(--sp2)' }}>{errors.customer}</div>}
@@ -164,7 +191,7 @@ export default function ChallanForm() {
               </div>
             ) : (
               <>
-                <input className="form-input" placeholder="Search customer…"
+                <input className="form-input" placeholder="Search customer…" aria-label="Search customers"
                   value={customerSearch} onChange={(e) => setCustomerSearch(e.target.value)} />
                 <div style={{ marginTop: 8, maxHeight: 200, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
                   {customersData?.data.map((c) => (
@@ -188,7 +215,7 @@ export default function ChallanForm() {
           {/* Summary */}
           <div className="card">
             <div className="card-header">
-              <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Summary</h3>
+              <h3 className="card-section-title">Summary</h3>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 'var(--sp1) 0' }}>
               {[
@@ -208,12 +235,12 @@ export default function ChallanForm() {
         {/* Product picker */}
         <div className="card" style={{ marginBottom: 'var(--sp3)' }}>
           <div className="card-header">
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Add Products</h3>
+            <h3 className="card-section-title">Add Products</h3>
           </div>
           {errors.items && <div className="alert alert-error" style={{ marginBottom: 'var(--sp2)' }}>{errors.items}</div>}
           <div className="search-input-wrapper" style={{ marginBottom: 'var(--sp2)' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input id="product-picker-search" className="search-input" placeholder="Search products to add…"
+            <input id="product-picker-search" className="search-input" placeholder="Search products to add…" aria-label="Search products to add"
               value={productSearch} onChange={(e) => setProductSearch(e.target.value)} />
           </div>
           {productSearch && (
@@ -268,7 +295,8 @@ export default function ChallanForm() {
               </thead>
               <tbody>
                 {items.map((item) => {
-                  const overstock = item.quantity > item.current_stock;
+                  const qtyNum = Number(item.quantity) || 0;
+                  const overstock = qtyNum > item.current_stock;
                   return (
                     <tr key={item.product_id} style={{ background: overstock ? 'var(--brick-light)' : undefined }}>
                       <td>
@@ -291,7 +319,7 @@ export default function ChallanForm() {
                           min={1}
                           className="form-input mono"
                           style={{ width: 80, padding: '6px 8px' }}
-                          value={item.quantity === ('' as unknown as number) ? '' : item.quantity}
+                          value={item.quantity === '' ? '' : item.quantity}
                           onChange={(e) => handleQtyChange(item.product_id, e.target.value)}
                           onBlur={() => handleQtyBlur(item.product_id, item.quantity)}
                         />

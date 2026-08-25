@@ -166,21 +166,21 @@ export default function CustomerForm() {
               <label className="form-label" htmlFor="c-name">Full Name *</label>
               <input id="c-name" type="text" className={`form-input${errors.name ? ' error' : ''}`}
                 value={values.name} onChange={(e) => set('name', e.target.value)} />
-              {errors.name && <div className="form-error">{errors.name}</div>}
+              {errors.name && <div className="form-error" role="alert">{errors.name}</div>}
             </div>
 
             <div className="form-group">
               <label className="form-label" htmlFor="c-mobile">Mobile *</label>
               <input id="c-mobile" type="tel" className={`form-input${errors.mobile ? ' error' : ''}`}
                 value={values.mobile} onChange={(e) => set('mobile', e.target.value)} />
-              {errors.mobile && <div className="form-error">{errors.mobile}</div>}
+              {errors.mobile && <div className="form-error" role="alert">{errors.mobile}</div>}
             </div>
 
             <div className="form-group">
               <label className="form-label" htmlFor="c-email">Email</label>
               <input id="c-email" type="email" className={`form-input${errors.email ? ' error' : ''}`}
                 value={values.email} onChange={(e) => set('email', e.target.value)} />
-              {errors.email && <div className="form-error">{errors.email}</div>}
+              {errors.email && <div className="form-error" role="alert">{errors.email}</div>}
             </div>
 
             <div className="form-group">
@@ -194,7 +194,7 @@ export default function CustomerForm() {
               <input id="c-gst" type="text" className={`form-input mono${errors.gst_number ? ' error' : ''}`}
                 value={values.gst_number} onChange={(e) => set('gst_number', e.target.value.toUpperCase())}
                 placeholder="27AABCP1234A1Z5" />
-              {errors.gst_number && <div className="form-error">{errors.gst_number}</div>}
+              {errors.gst_number && <div className="form-error" role="alert">{errors.gst_number}</div>}
             </div>
 
             <div className="form-group">
@@ -222,7 +222,7 @@ export default function CustomerForm() {
               <input id="c-followup" type="date" className={`form-input mono${errors.follow_up_date ? ' error' : ''}`}
                 min={isEdit ? undefined : todayLocalDate()}
                 value={values.follow_up_date} onChange={(e) => set('follow_up_date', e.target.value)} />
-              {errors.follow_up_date && <div className="form-error">{errors.follow_up_date}</div>}
+              {errors.follow_up_date && <div className="form-error" role="alert">{errors.follow_up_date}</div>}
             </div>
 
             <div className="form-group">
@@ -244,7 +244,7 @@ export default function CustomerForm() {
             <textarea id="c-address" className={`form-textarea${errors.address ? ' error' : ''}`}
               value={values.address} onChange={(e) => set('address', e.target.value)}
               style={{ minHeight: 80 }} />
-            {errors.address && <div className="form-error">{errors.address}</div>}
+            {errors.address && <div className="form-error" role="alert">{errors.address}</div>}
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--sp1)', justifyContent: 'flex-end', paddingTop: 'var(--sp2)', borderTop: '1px solid var(--border)' }}>

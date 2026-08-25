@@ -39,7 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {
         // Token expired or invalid — clear stale data
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
       })
       .finally(() => {
         setIsLoading(false);
@@ -48,11 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
-    const { token: newToken, user: newUser } = res.data.data;
+    const { token: newToken } = res.data.data;
     localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
     setToken(newToken);
-    setUser(newUser);
+    setUser(res.data.data.user);
   };
 
   const logout = () => {

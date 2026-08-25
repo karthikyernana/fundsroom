@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useChallans } from '../../hooks/useChallans';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,13 +12,29 @@ function formatDate(s: string) {
 export default function ChallanList() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canCreate = user?.role !== 'accounts';
 
-  const [status, setStatus] = useState(searchParams.get('status') ?? '');
-  const [page, setPage] = useState(1);
+  // Filters live in the URL so deep links (e.g. /challans?status=draft),
+  // refreshes, and back-navigation all stay in sync.
+  const status = searchParams.get('status') ?? '';
+  const page = Number(searchParams.get('page')) || 1;
 
-  const { data, isLoading, isError, refetch } = useChallans({
+  const setFilter = (next: { status?: string; page?: number }) => {
+    const params = new URLSearchParams(searchParams);
+    if (next.status !== undefined) {
+      if (next.status) params.set('status', next.status);
+      else params.delete('status');
+      params.delete('page');
+    }
+    if (next.page !== undefined) {
+      if (next.page > 1) params.set('page', String(next.page));
+      else params.delete('page');
+    }
+    setSearchParams(params, { replace: true });
+  };
+
+  const { data, isLoading, isError, error, refetch } = useChallans({
     status: status || undefined,
     page,
     limit: 20,
@@ -45,7 +60,7 @@ export default function ChallanList() {
           {['', 'draft', 'confirmed', 'cancelled'].map((s) => (
             <button key={s} type="button"
               className={`btn btn-sm ${status === s ? 'btn-primary' : 'btn-ghost'}`}
-              onClick={() => { setStatus(s); setPage(1); }}
+              onClick={() => { setFilter({ status: s }); }}
               id={`filter-${s || 'all'}`}
             >
               {s === '' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -58,7 +73,7 @@ export default function ChallanList() {
         {isLoading ? (
           <div className="state-container"><Spinner size="lg" /></div>
         ) : isError ? (
-          <ErrorState onRetry={() => refetch()} />
+          <ErrorState message={(error as { message?: string })?.message} onRetry={() => refetch()} />
         ) : !data?.data.length ? (
           <EmptyState title={status ? `No ${status} challans` : 'No challans yet'}
             action={canCreate ? <button className="btn btn-primary" onClick={() => navigate('/challans/new')}>Create Challan</button> : undefined} />
@@ -78,7 +93,13 @@ export default function ChallanList() {
               </thead>
               <tbody>
                 {data.data.map((c) => (
-                  <tr key={c.id} onClick={() => navigate(`/challans/${c.id}`)}>
+                  <tr key={c.id}
+                    tabIndex={0}
+                    role="link"
+                    aria-label={`Open challan ${c.challan_number}`}
+                    onClick={() => navigate(`/challans/${c.id}`)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/challans/${c.id}`); } }}
+                  >
                     <td className="mono" style={{ fontWeight: 600 }}>{c.challan_number}</td>
                     <td>
                       <div style={{ fontWeight: 500 }}>{c.customer?.name}</div>
@@ -97,7 +118,7 @@ export default function ChallanList() {
             </table>
             {data.meta.totalPages > 1 && (
               <Pagination page={data.meta.page} totalPages={data.meta.totalPages}
-                total={data.meta.total} limit={data.meta.limit} onPageChange={setPage} />
+                total={data.meta.total} limit={data.meta.limit} onPageChange={(p) => setFilter({ page: p })} />
             )}
           </>
         )}

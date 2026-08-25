@@ -33,6 +33,7 @@ export default function ProductDetail() {
     setMovError('');
     const quantity = Number(qty);
     if (!Number.isSafeInteger(quantity) || quantity <= 0) { setMovError('Enter a positive whole-number quantity'); return; }
+    if (reason.trim().length < 3) { setMovError('A reason is required for every stock movement'); return; }
     if (product && movType === 'OUT' && quantity > product.current_stock) {
       setMovError(`Cannot deduct ${quantity} units: only ${product.current_stock} available in stock.`);
       return;
@@ -87,7 +88,7 @@ export default function ProductDetail() {
       <div className="detail-grid">
         <div className="card">
           <div className="card-header">
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Details</h3>
+            <h3 className="card-section-title">Details</h3>
           </div>
           {[
             { label: 'SKU', value: product.sku, mono: true },
@@ -106,7 +107,7 @@ export default function ProductDetail() {
         {/* Stock card */}
         <div className="card" style={{ borderColor: isLow ? 'var(--brick)' : undefined }}>
           <div className="card-header">
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Current Stock</h3>
+            <h3 className="card-section-title">Current Stock</h3>
             {isLow && <span className="badge badge-cancelled" style={{ background: 'var(--brick-light)', color: 'var(--brick)' }}>LOW STOCK</span>}
           </div>
           <div style={{ textAlign: 'center', padding: 'var(--sp4) 0' }}>
@@ -126,7 +127,7 @@ export default function ProductDetail() {
       {/* Movement log */}
       <div className="card">
         <div className="card-header">
-          <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Stock Movement Log</h3>
+          <h3 className="card-section-title">Stock Movement Log</h3>
         </div>
         {movLoading ? (
           <div className="state-container"><Spinner /></div>

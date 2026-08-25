@@ -146,7 +146,7 @@ export default function UserManagement() {
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 />
-                {errors.name && <div className="form-error">{errors.name}</div>}
+                {errors.name && <div className="form-error" role="alert">{errors.name}</div>}
               </div>
 
               <div className="form-group">
@@ -159,7 +159,7 @@ export default function UserManagement() {
                   value={form.email}
                   onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 />
-                {errors.email && <div className="form-error">{errors.email}</div>}
+                {errors.email && <div className="form-error" role="alert">{errors.email}</div>}
               </div>
 
               <div className="form-group">
@@ -173,7 +173,7 @@ export default function UserManagement() {
                   onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                   autoComplete="new-password"
                 />
-                {errors.password && <div className="form-error">{errors.password}</div>}
+                {errors.password && <div className="form-error" role="alert">{errors.password}</div>}
               </div>
 
               <div className="form-group">

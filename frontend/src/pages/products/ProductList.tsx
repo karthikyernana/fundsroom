@@ -22,15 +22,27 @@ function StockCell({ stock, min }: { stock: number; min: number }) {
 export default function ProductList() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canWrite = user?.role === 'admin' || user?.role === 'warehouse';
 
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [lowStock, setLowStock] = useState(searchParams.get('low_stock') === 'true');
-  const [page, setPage] = useState(1);
+  // Filters live in the URL so deep links (e.g. /products?low_stock=true),
+  // refreshes, and back-navigation all stay in sync.
+  const search = searchParams.get('search') ?? '';
+  const lowStock = searchParams.get('low_stock') === 'true';
+  const page = Number(searchParams.get('page')) || 1;
+  const [searchInput, setSearchInput] = useState(search);
 
-  const { data, isLoading, isError, refetch } = useProducts({
+  const setFilter = (updates: Record<string, string | undefined>) => {
+    const params = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    if (!('page' in updates)) params.delete('page');
+    setSearchParams(params, { replace: true });
+  };
+
+  const { data, isLoading, isError, error, refetch } = useProducts({
     search: search || undefined,
     low_stock: lowStock || undefined,
     page,
@@ -39,8 +51,7 @@ export default function ProductList() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearch(searchInput);
-    setPage(1);
+    setFilter({ search: searchInput || undefined });
   };
 
   return (
@@ -68,7 +79,7 @@ export default function ProductList() {
           </div>
           <button type="submit" className="btn btn-secondary btn-sm">Search</button>
           {search && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSearchInput(''); setFilter({ search: undefined }); }}>
               Clear
             </button>
           )}
@@ -79,7 +90,7 @@ export default function ProductList() {
             id="low-stock-filter"
             type="checkbox"
             checked={lowStock}
-            onChange={(e) => { setLowStock(e.target.checked); setPage(1); }}
+            onChange={(e) => setFilter({ low_stock: e.target.checked ? 'true' : undefined })}
             style={{ accentColor: 'var(--brick)', width: 16, height: 16 }}
           />
           Low stock only
@@ -90,7 +101,7 @@ export default function ProductList() {
         {isLoading ? (
           <div className="state-container"><Spinner size="lg" /></div>
         ) : isError ? (
-          <ErrorState onRetry={() => refetch()} />
+          <ErrorState message={(error as { message?: string })?.message} onRetry={() => refetch()} />
         ) : !data?.data.length ? (
           <EmptyState
             title={search || lowStock ? 'No products match' : 'No products yet'}
@@ -114,7 +125,13 @@ export default function ProductList() {
               </thead>
               <tbody>
                 {data.data.map((p) => (
-                  <tr key={p.id} onClick={() => navigate(`/products/${p.id}`)}>
+                  <tr key={p.id}
+                    tabIndex={0}
+                    role="link"
+                    aria-label={`Open product ${p.name}`}
+                    onClick={() => navigate(`/products/${p.id}`)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/products/${p.id}`); } }}
+                  >
                     <td style={{ fontWeight: 500 }}>{p.name}</td>
                     <td className="mono">{p.sku}</td>
                     <td style={{ color: 'var(--ink-muted)', fontSize: '0.875rem' }}>{p.category}</td>
@@ -127,7 +144,7 @@ export default function ProductList() {
             </table>
             {data.meta.totalPages > 1 && (
               <Pagination page={data.meta.page} totalPages={data.meta.totalPages}
-                total={data.meta.total} limit={data.meta.limit} onPageChange={setPage} />
+                total={data.meta.total} limit={data.meta.limit} onPageChange={(p) => setFilter({ page: String(p) })} />
             )}
           </>
         )}

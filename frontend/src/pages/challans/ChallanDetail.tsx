@@ -73,12 +73,14 @@ export default function ChallanDetail() {
   };
 
   const handleCancel = async () => {
+    setActionError('');
     try {
       await cancel.mutateAsync();
       setCancelOpen(false);
       showToast({ type: 'info', title: 'Challan Cancelled', message: 'Challan status set to cancelled.' });
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error?.message;
+      setActionError(msg ?? 'Failed to cancel challan');
       showToast({ type: 'error', title: 'Cancel Failed', message: msg ?? 'Failed to cancel challan' });
     }
   };
@@ -116,8 +118,7 @@ export default function ChallanDetail() {
               <button id="cancel-challan-btn" className="btn btn-danger" onClick={() => setCancelOpen(true)}>Cancel</button>
             )}
             {canConfirm && (
-              <button id="confirm-challan-btn" className="btn btn-primary" onClick={() => setConfirmOpen(true)}
-                style={{ background: 'var(--olive)', borderColor: 'var(--olive)' }}>
+              <button id="confirm-challan-btn" className="btn btn-primary btn-confirm" onClick={() => setConfirmOpen(true)}>
                 Confirm &amp; Dispatch
               </button>
             )}
@@ -138,7 +139,7 @@ export default function ChallanDetail() {
         {/* Customer card */}
         <div className="card" style={{ marginBottom: 'var(--sp3)' }}>
           <div className="card-header">
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>Customer</h3>
+            <h3 className="card-section-title">Customer</h3>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp2)', padding: 'var(--sp1) 0' }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--ledger-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'var(--ledger)', fontSize: '1.1rem' }}>
@@ -156,7 +157,7 @@ export default function ChallanDetail() {
         {/* Line items card */}
         <div className="card">
           <div className="card-header">
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>
+            <h3 className="card-section-title">
               Line Items
             </h3>
             <span className="mono" style={{ fontSize: '0.875rem', color: 'var(--ink-muted)' }}>
@@ -216,8 +217,7 @@ export default function ChallanDetail() {
           footer={
             <>
               <button className="btn btn-ghost" onClick={() => { setConfirmOpen(false); setActionError(''); }}>Cancel</button>
-              <button id="confirm-modal-btn" className="btn btn-primary"
-                style={{ background: 'var(--olive)', borderColor: 'var(--olive)' }}
+              <button id="confirm-modal-btn" className="btn btn-primary btn-confirm"
                 onClick={handleConfirm} disabled={confirm.isPending}>
                 {confirm.isPending ? <><Spinner size="sm" /> Confirming…</> : 'Yes, Confirm & Dispatch'}
               </button>
@@ -237,7 +237,7 @@ export default function ChallanDetail() {
         </Modal>
 
         {/* Cancel modal */}
-        <Modal isOpen={cancelOpen} onClose={() => setCancelOpen(false)} title="Cancel Challan"
+        <Modal isOpen={cancelOpen} onClose={() => { setCancelOpen(false); setActionError(''); }} title="Cancel Challan"
           footer={
             <>
               <button className="btn btn-ghost" onClick={() => setCancelOpen(false)}>Keep Draft</button>
@@ -248,6 +248,7 @@ export default function ChallanDetail() {
           }
         >
           <p>Cancel challan <strong className="mono">{challan.challan_number}</strong>? This cannot be undone.</p>
+          {actionError && <div className="alert alert-error">{actionError}</div>}
         </Modal>
       </div>
 

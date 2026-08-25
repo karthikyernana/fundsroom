@@ -70,9 +70,16 @@ All accounts share the default password: **`password123`**
 
 ### 3. Strict Audit Trail Enforcement
 - Direct edits to `current_stock` via `PUT /products/:id` are blocked.
-- Stock changes must originate from either a confirmed sales challan or an explicit `POST /products/:id/stock-movements` call (`IN` / `OUT` with mandatory user attribution and audit reasoning).
+- Stock changes must originate from either a confirmed sales challan, a confirmed-challan cancellation (which writes compensating `IN` movements), or an explicit `POST /products/:id/stock-movements` call (`IN` / `OUT` with mandatory user attribution and a required audit reason).
 
-### 4. Single-Logo High-Craft Enterprise UI
+### 4. Security Hardening
+- **Helmet** security headers on every response.
+- **Rate limiting:** global limiter (600 req / 15 min) plus a strict per-IP login limiter (10 failed attempts / 15 min).
+- **Fail-fast env validation** at boot (`JWT_SECRET`, `DATABASE_URL`, production `CORS_ORIGIN`).
+- **Fresh role authorization:** JWTs prove identity; the caller's role is re-read from the database on every request so demotions/deletions apply instantly.
+- **Locked-down CORS:** explicit origin allow-list in all environments.
+
+### 5. Single-Logo High-Craft Enterprise UI
 - Built strictly with the PRD palette (`#EDE7DA` parchment background, `#211D18` ink text, `#1F4D3D` bottle green primary).
 - **Single Authoritative Logo:** Responsive logo architecture displays a single brand header on desktop, hiding redundant form logos, while adapting seamlessly to mobile (`<899px`).
 - **Interactive Animations:** Concentric architectural SVG vault graphic (`spinSlow`), floating ambient background lighting (`floatAmbient`), and vertical-centered input eye toggles.
@@ -191,18 +198,18 @@ Base URL: `https://fundsroom-lp8g.onrender.com`
 | `POST` | `/products` | Yes | Admin, Warehouse | Create product record & log opening stock movement |
 | `GET` | `/products/:id` | Yes | All | Get product detail with movement count |
 | `PUT` | `/products/:id` | Yes | Admin, Warehouse | Update product details (price, alert threshold, location) |
-| `POST` | `/products/:id/stock-movements` | Yes | Admin, Warehouse | Record manual `IN` / `OUT` stock movement |
-| `GET` | `/products/:id/stock-movements` | Yes | All | Retrieve complete audit-logged stock movement timeline |
+| `POST` | `/products/:id/stock-movements` | Yes | Admin, Warehouse | Record manual `IN` / `OUT` stock movement (`reason` required for audit trail) |
+| `GET` | `/products/:id/stock-movements` | Yes | All | Retrieve paginated audit-logged stock movement timeline (`page`, `limit` up to 100) |
 | `GET` | `/challans` | Yes | All | List sales challans (supports `status`, `customer`, `page`, `limit`) |
 | `POST` | `/challans` | Yes | Admin, Sales, Warehouse | Create draft sales challan with snapshot pricing |
 | `GET` | `/challans/:id` | Yes | All | Get challan details with line item snapshots |
 | `PUT` | `/challans/:id` | Yes | Admin, Sales, Warehouse | Update draft challan items |
 | `POST` | `/challans/:id/confirm` | Yes | Admin, Sales, Warehouse | Confirm challan & atomically deduct stock |
-| `POST` | `/challans/:id/cancel` | Yes | Admin, Warehouse | Cancel draft or un-dispatched challan |
+| `POST` | `/challans/:id/cancel` | Yes | Admin, Warehouse (confirmed-cancel: Admin only) | Cancel a draft; Admins may also cancel a confirmed challan, which atomically restocks all items and records compensating `IN` movements |
 
 ---
 
 ## Known Limitations & Tradeoffs
 
-1. **In-Memory Post-Filtering for `low_stock`:** Prisma ORM lacks native column-to-column comparison queries (e.g. `WHERE current_stock <= min_stock_alert`). The service fetches category/search filtered records and post-filters in JS. For enterprise scale (100k+ SKUs), this would be refactored to raw SQL `$queryRaw`.
-2. **Stateless JWT Expiration:** Tokens expire after 24 hours. Immediate token revocation prior to expiration would require a Redis token blocklist, omitted to keep deployment lightweight.
+1. **Stateless JWT Expiration:** Tokens expire after 24 hours. However, every authenticated request re-reads the user's current role from the database, so demotions and deletions take effect immediately; full token revocation prior to expiration would still require a Redis blocklist, omitted to keep deployment lightweight.
+2. **Stock-movement audit trail pagination:** The movement timeline endpoint is server-paginated (`limit` max 100); the product detail screen fetches the first page rather than offering infinite scroll.

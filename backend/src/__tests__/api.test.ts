@@ -305,6 +305,12 @@ describe('Stock movements — non-negative guard', () => {
     expect(res.status).toBe(400);
   });
 
+  it('returns 400 when a manual movement has no reason (audit trail)', async () => {
+    const res = await request(app).post(`/products/${productId}/stock-movements`).set('Authorization', `Bearer ${warehouseToken}`)
+      .send({ quantity_changed: 5, movement_type: 'IN' });
+    expect(res.status).toBe(400);
+  });
+
   it('sales cannot add stock movement — 403', async () => {
     const res = await request(app).post(`/products/${productId}/stock-movements`).set('Authorization', `Bearer ${salesToken}`)
       .send({ quantity_changed: 10, movement_type: 'IN' });
@@ -394,10 +400,30 @@ describe('Challan lifecycle', () => {
     expect(res.body.error.message).toContain('already confirmed');
   });
 
-  it('cannot cancel a confirmed challan', async () => {
+  it('warehouse cannot cancel a confirmed challan (admin-only)', async () => {
+    const res = await request(app).post(`/challans/${challanId}/cancel`).set('Authorization', `Bearer ${warehouseToken}`);
+    expect(res.status).toBe(403);
+    expect(res.body.error.message).toContain('Only an admin');
+  });
+
+  it('admin can cancel a confirmed challan — stock restored and IN movements recorded', async () => {
+    const prodBefore = await request(app).get(`/products/${productId}`).set('Authorization', `Bearer ${adminToken}`);
+    const stockBefore = prodBefore.body.data.current_stock;
+    const qty = await request(app).get(`/challans/${challanId}`).set('Authorization', `Bearer ${adminToken}`);
+    const totalQty = qty.body.data.challan_items.reduce((s: number, i: { quantity: number }) => s + i.quantity, 0);
+
     const res = await request(app).post(`/challans/${challanId}/cancel`).set('Authorization', `Bearer ${adminToken}`);
-    expect(res.status).toBe(400);
-    expect(res.body.error.message).toContain('Cannot cancel a confirmed');
+    expect(res.status).toBe(200);
+    expect(res.body.data.status).toBe('cancelled');
+
+    const prodAfter = await request(app).get(`/products/${productId}`).set('Authorization', `Bearer ${adminToken}`);
+    expect(prodAfter.body.data.current_stock).toBe(stockBefore + totalQty);
+
+    const movements = await request(app).get(`/products/${productId}/stock-movements`).set('Authorization', `Bearer ${adminToken}`);
+    const cancellations = movements.body.data.movements.filter(
+      (m: { movement_type: string; reason: string }) => m.movement_type === 'IN' && m.reason?.includes(`Cancellation of Challan`)
+    );
+    expect(cancellations.length).toBeGreaterThan(0);
   });
 
   it('§5 insufficient stock — 409, entire transaction aborted, stock unchanged', async () => {
