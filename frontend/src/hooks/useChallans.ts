@@ -102,6 +102,8 @@ export function useCancelChallan(id: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['challans'] });
       qc.invalidateQueries({ queryKey: ['challans', id] });
+      // Cancelling a confirmed challan restocks items — keep products fresh
+      qc.invalidateQueries({ queryKey: ['products'] });
     },
   });
 }

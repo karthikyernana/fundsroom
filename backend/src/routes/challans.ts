@@ -100,7 +100,7 @@ router.post(
   requireRole('admin', 'warehouse'),
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const challan = await cancelChallan(req.params.id);
+      const challan = await cancelChallan(req.params.id, req.user!.role, req.user!.id);
       res.status(200).json({ success: true, data: challan });
     } catch (err) {
       next(err);

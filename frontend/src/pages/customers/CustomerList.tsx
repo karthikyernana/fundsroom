@@ -15,14 +15,26 @@ export default function CustomerList() {
   // Only admin and sales can write — warehouse and accounts see read-only
   const canWrite = user?.role === 'admin' || user?.role === 'sales';
 
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
-  const [myCustomers, setMyCustomers] = useState(searchParams.get('my_customers') === 'true');
-  const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState('');
+  // All filters live in the URL so deep links, refreshes, and back-navigation
+  // stay in sync.
+  const search = searchParams.get('search') ?? '';
+  const status = searchParams.get('status') ?? '';
+  const assignedTo = searchParams.get('assigned_to') ?? '';
+  const myCustomers = searchParams.get('my_customers') === 'true';
+  const page = Number(searchParams.get('page')) || 1;
+  const [searchInput, setSearchInput] = useState(search);
 
   const { data: salesReps } = useSalesReps();
+
+  const setFilter = (updates: Record<string, string | undefined>) => {
+    const params = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) params.set(key, value);
+      else params.delete(key);
+    }
+    if (!('page' in updates)) params.delete('page');
+    setSearchParams(params, { replace: true });
+  };
 
   const { data, isLoading, isError, error, refetch } = useCustomers({
     search: search || undefined,
@@ -35,18 +47,11 @@ export default function CustomerList() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearch(searchInput);
-    setPage(1);
+    setFilter({ search: searchInput || undefined });
   };
 
   const handleMyCustomersToggle = (val: boolean) => {
-    setMyCustomers(val);
-    setPage(1);
-    if (val) {
-      setSearchParams({ my_customers: 'true' });
-    } else {
-      setSearchParams({});
-    }
+    setFilter({ my_customers: val ? 'true' : undefined });
   };
 
   return (
@@ -106,7 +111,7 @@ export default function CustomerList() {
           </div>
           <button type="submit" className="btn btn-secondary btn-sm">Search</button>
           {search && (
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSearch(''); setSearchInput(''); setPage(1); }}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setSearchInput(''); setFilter({ search: undefined }); }}>
               Clear
             </button>
           )}
@@ -114,10 +119,11 @@ export default function CustomerList() {
 
         <select
           id="status-filter"
+          aria-label="Filter by status"
           className="form-select"
           style={{ width: 'auto', padding: '8px 36px 8px 12px' }}
           value={status}
-          onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+          onChange={(e) => setFilter({ status: e.target.value || undefined })}
         >
           <option value="">All statuses</option>
           <option value="lead">Lead</option>
@@ -127,10 +133,11 @@ export default function CustomerList() {
 
         <select
           id="sales-rep-filter"
+          aria-label="Filter by sales rep"
           className="form-select"
           style={{ width: 'auto', padding: '8px 36px 8px 12px' }}
           value={assignedTo}
-          onChange={(e) => { setAssignedTo(e.target.value); setPage(1); }}
+          onChange={(e) => setFilter({ assigned_to: e.target.value || undefined })}
         >
           <option value="">All Sales Reps</option>
           {salesReps?.map((rep) => (
@@ -177,7 +184,13 @@ export default function CustomerList() {
               </thead>
               <tbody>
                 {data.data.map((c) => (
-                  <tr key={c.id} onClick={() => navigate(`/customers/${c.id}`)}>
+                  <tr key={c.id}
+                    tabIndex={0}
+                    role="link"
+                    aria-label={`Open customer ${c.name}`}
+                    onClick={() => navigate(`/customers/${c.id}`)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/customers/${c.id}`); } }}
+                  >
                     <td>
                       <div style={{ fontWeight: 600 }}>{c.name}</div>
                       {c.business_name && (
@@ -214,7 +227,7 @@ export default function CustomerList() {
                 totalPages={data.meta.totalPages}
                 total={data.meta.total}
                 limit={data.meta.limit}
-                onPageChange={setPage}
+                onPageChange={(p) => setFilter({ page: String(p) })}
               />
             )}
           </>

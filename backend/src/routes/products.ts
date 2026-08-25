@@ -8,7 +8,7 @@ import {
 import {
   listProducts,
   getProduct,
-  createProductWithUser,
+  createProduct,
   updateProduct,
   addStockMovement,
   getStockMovements,
@@ -42,7 +42,7 @@ router.post(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const data = createProductSchema.parse(req.body);
-      const product = await createProductWithUser(data, req.user!.id);
+      const product = await createProduct(data, req.user!.id);
       res.status(201).json({ success: true, data: product });
     } catch (err) {
       next(err);
@@ -102,7 +102,10 @@ router.get(
   '/:id/stock-movements',
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
-      const result = await getStockMovements(req.params.id);
+      const result = await getStockMovements(req.params.id, {
+        page: Number(req.query.page) || undefined,
+        limit: Math.min(Number(req.query.limit) || 20, 100),
+      });
       res.status(200).json({ success: true, data: result });
     } catch (err) {
       next(err);

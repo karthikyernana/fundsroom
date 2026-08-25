@@ -22,7 +22,9 @@ export const updateProductSchema = createProductSchema
 export const stockMovementSchema = z.object({
   quantity_changed: z.coerce.number().int().positive('Quantity must be a positive integer').max(2_147_483_647),
   movement_type: z.enum(['IN', 'OUT']),
-  reason: z.string().max(300).optional(),
+  // Manual adjustments must be auditable — an unexplained stock change defeats
+  // the audit trail. (System-generated movements from challans supply their own.)
+  reason: z.string().trim().min(3, 'Reason is required (min 3 characters)').max(300),
 }).strict();
 
 export const productQuerySchema = z.object({

@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 
 import authRoutes from './routes/auth';
 import customerRoutes from './routes/customers';
@@ -12,20 +14,35 @@ import { errorHandler } from './middleware/errorHandler';
 const app = express();
 const PORT = process.env.PORT ?? 3001;
 
-// ─── Middleware ──────────────────────────────────────────────────────────────
+// ─── Boot-time env validation (fail fast, not per-request) ───────────────────
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET must be configured');
+}
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL must be configured');
+}
 const allowedOrigin = process.env.CORS_ORIGIN;
 if (process.env.NODE_ENV === 'production' && !allowedOrigin) {
   throw new Error('CORS_ORIGIN must be configured when NODE_ENV is production');
 }
+
+// ─── Middleware ──────────────────────────────────────────────────────────────
+app.use(helmet());
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 600,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { success: false, error: { code: 'RATE_LIMITED', message: 'Too many requests, please slow down' } },
+}));
 app.use(cors({
   origin: (origin, callback) => {
-    // In production, only allow the configured CORS_ORIGIN
-    // In development (no CORS_ORIGIN set), reflect the requesting origin
+    // In production, only allow the configured CORS_ORIGIN.
+    // In development, default to the local Vite dev server unless overridden.
     if (!origin) return callback(null, true);
-    if (!allowedOrigin || process.env.NODE_ENV !== 'production') {
-      return callback(null, true); // dev: allow all
-    }
-    if (origin === allowedOrigin) {
+    const devOrigins = allowedOrigin ? [allowedOrigin] : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    const allowList = process.env.NODE_ENV === 'production' ? [allowedOrigin!] : devOrigins;
+    if (allowList.includes(origin)) {
       return callback(null, true);
     }
     return callback(new Error(`CORS: Origin ${origin} not allowed`));

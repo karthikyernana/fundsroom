@@ -13,7 +13,7 @@ function Field({ id: fid, label, type = 'text', required = false, mono = false, 
       <label className="form-label" htmlFor={fid}>{label}{required && ' *'}</label>
       <input id={fid} type={type} className={`form-input${mono ? ' mono' : ''}${error ? ' error' : ''}`}
         value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
-      {error && <div className="form-error">{error}</div>}
+      {error && <div className="form-error" role="alert">{error}</div>}
     </div>
   );
 }

@@ -185,7 +185,7 @@ function RecentChallanRow({ c, navigate }: { c: { id: string; challan_number: st
       onClick={() => navigate(`/challans/${c.id}`)}
       role="button"
       tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && navigate(`/challans/${c.id}`)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/challans/${c.id}`); } }}
       className="dispatch-row"
     >
       <div className="dispatch-row-primary">
@@ -265,7 +265,7 @@ function Dashboard() {
             style={{ animationDelay: `${i * 45}ms` }}
             onClick={() => navigate(m.to)}
             role="button" tabIndex={0}
-            onKeyDown={e => e.key === 'Enter' && navigate(m.to)}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(m.to); } }}
           >
             <span className="metric-label">{m.label}</span>
             <div className="metric-value">{m.value}</div>
@@ -306,7 +306,7 @@ function Dashboard() {
               className="module-tile dashboard-module-tile"
               onClick={() => navigate(tile.to)}
               role="button" tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && navigate(tile.to)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(tile.to); } }}
               style={{ animationDelay: `${180 + i * 45}ms` }}
             >
               <div className="module-tile-label">{tile.label}</div>
@@ -319,7 +319,7 @@ function Dashboard() {
             <div
               onClick={() => navigate('/products?low_stock=true')}
               role="button" tabIndex={0}
-              onKeyDown={e => e.key === 'Enter' && navigate('/products?low_stock=true')}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/products?low_stock=true'); } }}
               className="stock-callout"
             >
               <div className="stock-callout-title">

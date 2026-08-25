@@ -536,6 +536,24 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 2px 8px rgba(31, 77, 61, 0.25);
 }
 
+/* Olive confirm action (challan confirm etc.) */
+.btn-confirm {
+  background: var(--olive) !important;
+  border-color: var(--olive) !important;
+}
+.btn-confirm:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+/* Shared card section label — replaces per-page inline duplication */
+.card-section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-muted);
+}
+
 .btn-secondary {
   background: transparent;
   color: var(--ledger);

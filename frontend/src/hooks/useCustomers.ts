@@ -84,6 +84,12 @@ export function useAddCustomerNote(customerId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (note: string) => api.post(`/customers/${customerId}/notes`, { note }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['customers', customerId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['customers', customerId] });
+      // List rows show a note count — keep the list cache in sync too
+      qc.invalidateQueries({
+        predicate: (q) => q.queryKey[0] === 'customers' && typeof q.queryKey[1] === 'object',
+      });
+    },
   });
 }

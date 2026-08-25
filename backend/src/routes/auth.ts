@@ -2,11 +2,25 @@ import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '../lib/prisma';
 import { AppError } from '../lib/AppError';
 import { authenticate, requireRole, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
+
+// Brute-force protection: max 10 failed attempts per IP per 15 minutes.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    success: false,
+    error: { code: 'RATE_LIMITED', message: 'Too many login attempts. Try again in 15 minutes.' },
+  },
+});
 
 const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email('Valid email required'),
@@ -16,6 +30,7 @@ const loginSchema = z.object({
 // POST /auth/login
 router.post(
   '/login',
+  loginLimiter,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { email, password } = loginSchema.parse(req.body);

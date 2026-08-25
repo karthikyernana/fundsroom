@@ -17,7 +17,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const showToast = useCallback(({ type, title, message }: Omit<ToastMessage, 'id'>) => {
-    const id = Math.random().toString(36).substring(2, 9);
+    const id = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     setToasts((prev) => [...prev, { id, type, title, message }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -31,7 +33,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="toast-container" aria-live="polite" aria-atomic="true">
+      <div className="toast-container" aria-live="assertive" aria-atomic="true">
         {toasts.map((toast) => (
           <div key={toast.id} className={`toast toast-${toast.type}`}>
             <div className="toast-content">

@@ -93,7 +93,7 @@ export default function CustomerDetail() {
         {/* ── Details card */}
         <div className="card">
           <div className="card-header">
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>
+            <h3 className="card-section-title">
               Details
             </h3>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -132,7 +132,7 @@ export default function CustomerDetail() {
         {/* ── Stats card */}
         <div className="card">
           <div className="card-header">
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>
+            <h3 className="card-section-title">
               Activity
             </h3>
           </div>
@@ -156,7 +156,7 @@ export default function CustomerDetail() {
       {/* ── Notes timeline */}
       <div className="card">
         <div className="card-header">
-          <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-muted)' }}>
+          <h3 className="card-section-title">
             Follow-up Notes
           </h3>
         </div>
@@ -172,7 +172,7 @@ export default function CustomerDetail() {
                 onChange={(e) => setNoteText(e.target.value)}
                 style={{ minHeight: 72, resize: 'vertical' }}
               />
-              {noteError && <div className="form-error">{noteError}</div>}
+              {noteError && <div className="form-error" role="alert">{noteError}</div>}
             </div>
             <button
               id="add-note-btn"
